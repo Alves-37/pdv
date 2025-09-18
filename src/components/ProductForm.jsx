@@ -74,7 +74,7 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Linha 1: Código, Categoria, Nome, Venda por peso */}
+      {/* Linha 1: Código, Categoria, Nome */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <div className="sm:col-span-1">
           <label className="label">Código</label>
@@ -96,12 +96,6 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
         <div className="sm:col-span-2">
           <label className="label">Nome</label>
           <input className="input w-full" value={form.nome} onChange={e => update('nome', e.target.value)} required />
-        </div>
-        <div className="sm:col-span-4">
-          <label className="inline-flex items-center gap-2">
-            <input type="checkbox" className="checkbox" checked={form.venda_por_peso} onChange={e => update('venda_por_peso', e.target.checked)} />
-            <span>Venda por peso</span>
-          </label>
         </div>
       </div>
 
@@ -129,6 +123,14 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
           <label className="label">Estoque mínimo</label>
           <input type="number" className="input w-full" value={form.estoque_minimo} onChange={e => update('estoque_minimo', e.target.value)} />
         </div>
+      </div>
+
+      {/* Linha final: Venda por peso */}
+      <div>
+        <label className="inline-flex items-center gap-2">
+          <input type="checkbox" className="checkbox" checked={form.venda_por_peso} onChange={e => update('venda_por_peso', e.target.checked)} />
+          <span>Venda por peso</span>
+        </label>
       </div>
 
       <div className="flex items-center justify-end gap-2">
