@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../services/api'
 import Modal from '../components/Modal'
 
@@ -23,60 +23,72 @@ export default function Vendas() {
     return `${y}-${m}-${day}`
   }
 
-  // Carregar conforme período selecionado
-  useEffect(() => {
+  // Carregar conforme período selecionado (com polling + foco/visibilidade)
+  const loadData = useCallback(async () => {
     let mounted = true
-    async function load() {
-      setLoading(true)
-      setError(null)
-      try {
-        let data
-        if (period === 'today') {
-          const today = new Date()
-          const ymd = toYMD(today)
-          data = await api.getVendasPeriodo(ymd, ymd, usuarioId || undefined)
-        } else if (period === 'month') {
-          const now = new Date()
-          const start = new Date(now.getFullYear(), now.getMonth(), 1)
-          const data_inicio = toYMD(start)
-          const data_fim = toYMD(now)
-          data = await api.getVendasPeriodo(data_inicio, data_fim, usuarioId || undefined)
+    setLoading(true)
+    setError(null)
+    try {
+      let data
+      if (period === 'today') {
+        const today = new Date()
+        const ymd = toYMD(today)
+        data = await api.getVendasPeriodo(ymd, ymd, usuarioId || undefined)
+      } else if (period === 'month') {
+        const now = new Date()
+        const start = new Date(now.getFullYear(), now.getMonth(), 1)
+        const data_inicio = toYMD(start)
+        const data_fim = toYMD(now)
+        data = await api.getVendasPeriodo(data_inicio, data_fim, usuarioId || undefined)
+      } else {
+        if (usuarioId) {
+          // quando há filtro de vendedor, usar um período amplo até hoje
+          const data_inicio = '1970-01-01'
+          const data_fim = toYMD(new Date())
+          data = await api.getVendasPeriodo(data_inicio, data_fim, usuarioId)
         } else {
-          if (usuarioId) {
-            // quando há filtro de vendedor, usar um período amplo até hoje
-            const data_inicio = '1970-01-01'
-            const data_fim = toYMD(new Date())
-            data = await api.getVendasPeriodo(data_inicio, data_fim, usuarioId)
-          } else {
-            data = await api.getVendas()
-          }
+          data = await api.getVendas()
         }
-        const arr = Array.isArray(data) ? data : (data?.items || [])
-        if (mounted) setTodos(arr)
-      } catch (e) {
-        // Fallback: se a busca por período falhar, tentar uma listagem geral para não quebrar a UI
-        if (mounted) setError(e.message)
-        try {
-          let fallback
-          if (usuarioId) {
-            const data_inicio = '1970-01-01'
-            const data_fim = toYMD(new Date())
-            fallback = await api.getVendasPeriodo(data_inicio, data_fim, usuarioId)
-          } else {
-            fallback = await api.getVendas()
-          }
-          const arr2 = Array.isArray(fallback) ? fallback : (fallback?.items || [])
-          if (mounted) setTodos(arr2)
-        } catch {
-          // mantém erro e lista vazia
-        }
-      } finally {
-        if (mounted) setLoading(false)
       }
+      const arr = Array.isArray(data) ? data : (data?.items || [])
+      if (mounted) setTodos(arr)
+    } catch (e) {
+      // Fallback: se a busca por período falhar, tentar uma listagem geral para não quebrar a UI
+      if (mounted) setError(e.message)
+      try {
+        let fallback
+        if (usuarioId) {
+          const data_inicio = '1970-01-01'
+          const data_fim = toYMD(new Date())
+          fallback = await api.getVendasPeriodo(data_inicio, data_fim, usuarioId)
+        } else {
+          fallback = await api.getVendas()
+        }
+        const arr2 = Array.isArray(fallback) ? fallback : (fallback?.items || [])
+        if (mounted) setTodos(arr2)
+      } catch {
+        // mantém erro e lista vazia
+      }
+    } finally {
+      if (mounted) setLoading(false)
     }
-    load()
     return () => { mounted = false }
   }, [period, usuarioId])
+
+  useEffect(() => {
+    let cleanup = loadData()
+    const intervalId = setInterval(() => { loadData() }, 20000)
+    const onFocus = () => loadData()
+    const onVisibility = () => { if (document.visibilityState === 'visible') loadData() }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      if (typeof cleanup === 'function') cleanup()
+      clearInterval(intervalId)
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [loadData])
 
   // Carregar produtos uma vez para mapear nomes no detalhe (opcional)
   useEffect(() => {

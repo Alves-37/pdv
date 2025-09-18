@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import api from '../services/api'
 
 export default function Dashboard() {
@@ -32,9 +32,8 @@ export default function Dashboard() {
     return `${y}-${m}-${day}`
   }
 
-  useEffect(() => {
+  const loadMetrics = useCallback(async () => {
     let mounted = true
-    async function load() {
       setLoading(true)
       setError(null)
       try {
@@ -138,10 +137,24 @@ export default function Dashboard() {
       } finally {
         if (mounted) setLoading(false)
       }
-    }
-    load()
     return () => { mounted = false }
   }, [])
+
+  useEffect(() => {
+    let cleanup = loadMetrics()
+    // Polling leve (20s) + refresh ao focar/visibilidade
+    const intervalId = setInterval(() => { loadMetrics() }, 20000)
+    const onFocus = () => loadMetrics()
+    const onVisibility = () => { if (document.visibilityState === 'visible') loadMetrics() }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      if (typeof cleanup === 'function') cleanup()
+      clearInterval(intervalId)
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [loadMetrics])
 
   const StatCard = ({ title, value, color = 'primary', icon }) => {
     // Padrão PDV3: cards sólidos com gradiente e texto branco
