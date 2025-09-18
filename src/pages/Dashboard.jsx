@@ -9,6 +9,8 @@ export default function Dashboard() {
     lucro_mes: null,
     valor_estoque: null,
     valor_potencial: null,
+    lucro_potencial: null,
+    baixo_estoque: null,
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -46,20 +48,26 @@ export default function Dashboard() {
         // 2) Calcular localmente estoque e potencial a partir dos produtos
         let valorEstoque = null
         let valorPotencial = null
+        let baixoEstoqueCount = null
         try {
           const produtosData = await api.getProdutos('')
           const produtos = Array.isArray(produtosData) ? produtosData : (produtosData?.items || [])
           let totalEstoque = 0
           let totalPotencial = 0
+          let lowCount = 0
           for (const p of produtos) {
             const estoque = Number(p.estoque ?? p.quantidade_estoque ?? 0)
             const precoVenda = Number(p.preco_venda ?? p.preco ?? 0)
             const precoCusto = Number(p.preco_custo ?? p.custo ?? 0)
             totalEstoque += estoque * precoCusto
             totalPotencial += estoque * precoVenda
+            const min = Number(p.estoque_minimo ?? 0)
+            const isLow = min > 0 ? (estoque <= min) : (estoque <= 5)
+            if (isLow) lowCount += 1
           }
           valorEstoque = totalEstoque
           valorPotencial = totalPotencial
+          baixoEstoqueCount = lowCount
         } catch {
           // mantém null se falhar
         }
@@ -120,6 +128,8 @@ export default function Dashboard() {
           vendas_mes: mes?.total ?? m.vendas_mes,
           valor_estoque: valorEstoque,
           valor_potencial: valorPotencial,
+          lucro_potencial: (valorPotencial != null && valorEstoque != null) ? (valorPotencial - valorEstoque) : null,
+          baixo_estoque: baixoEstoqueCount,
           lucro_dia: lucroDia,
           lucro_mes: lucroMes,
         }))
@@ -221,6 +231,18 @@ export default function Dashboard() {
             value={metricas?.valor_potencial == null ? '—' : fmtMT(metricas.valor_potencial)}
             color="secondary"
             icon={(<svg className="h-5 w-5 text-secondary-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>)}
+          />
+          <StatCard
+            title="Lucro potencial"
+            value={metricas?.lucro_potencial == null ? '—' : fmtMT(metricas.lucro_potencial)}
+            color="accent"
+            icon={(<svg className="h-5 w-5 text-accent-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3 3 7-7"/></svg>)}
+          />
+          <StatCard
+            title="Produtos com baixo estoque"
+            value={metricas?.baixo_estoque == null ? '—' : metricas.baixo_estoque}
+            color="danger"
+            icon={(<svg className="h-5 w-5 text-danger-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v4"/><path d="M3 3h18l-2 13H5L3 3z"/><circle cx="12" cy="18" r="1"/></svg>)}
           />
         </section>
       )}

@@ -14,6 +14,7 @@ export default function Produtos() {
   const [submitting, setSubmitting] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [confirmProduct, setConfirmProduct] = useState(null)
+  const [lowOnly, setLowOnly] = useState(false)
 
   async function load(search) {
     setLoading(true)
@@ -65,16 +66,28 @@ export default function Produtos() {
     } catch { return `${v}` }
   }
 
+  const isBaixo = (p) => {
+    const estoque = Number(p.estoque ?? 0)
+    const min = Number(p.estoque_minimo ?? 0)
+    return min > 0 ? (estoque <= min) : (estoque <= 5)
+  }
+
   const filtrados = useMemo(() => {
-    if (!debouncedQ) return todos
-    return todos.filter(p => {
-      const nome = (p.nome || '').toLowerCase()
-      const codigo = (p.codigo || '').toLowerCase()
-      const categoria = String(p.categoria_id || '').toLowerCase()
-      const unidade = (p.unidade_medida || '').toLowerCase()
-      return nome.includes(debouncedQ) || codigo.includes(debouncedQ) || categoria.includes(debouncedQ) || unidade.includes(debouncedQ)
-    })
-  }, [todos, debouncedQ])
+    let base = todos
+    if (debouncedQ) {
+      base = base.filter(p => {
+        const nome = (p.nome || '').toLowerCase()
+        const codigo = (p.codigo || '').toLowerCase()
+        const categoria = String(p.categoria_id || '').toLowerCase()
+        const unidade = (p.unidade_medida || '').toLowerCase()
+        return nome.includes(debouncedQ) || codigo.includes(debouncedQ) || categoria.includes(debouncedQ) || unidade.includes(debouncedQ)
+      })
+    }
+    if (lowOnly) {
+      base = base.filter(isBaixo)
+    }
+    return base
+  }, [todos, debouncedQ, lowOnly])
 
   const SkeletonCard = () => (
     <div className="card animate-pulse">
@@ -98,12 +111,27 @@ export default function Produtos() {
           </button>
         </div>
         <div className="flex-1 min-w-[220px] sm:min-w-[320px] max-w-xl">
-          <label className="sr-only" htmlFor="buscar">Buscar</label>
-          <div className="relative">
-            <input id="buscar" className="input w-full pl-9" placeholder="Buscar por nome, código, categoria ou unidade" value={q} onChange={e => setQ(e.target.value)} />
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
-            </span>
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1">
+              <label className="sr-only" htmlFor="buscar">Buscar</label>
+              <input id="buscar" className="input w-full pl-9" placeholder="Buscar por nome, código, categoria ou unidade" value={q} onChange={e => setQ(e.target.value)} />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+              </span>
+            </div>
+            {/* Switch baixo estoque */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Baixo estoque</span>
+              <button
+                type="button"
+                aria-pressed={lowOnly}
+                onClick={() => setLowOnly(v => !v)}
+                className={`w-10 h-6 rounded-full transition-colors ${lowOnly ? 'bg-red-500' : 'bg-gray-300'}`}
+                title="Mostrar apenas produtos com baixo estoque"
+              >
+                <span className={`block w-5 h-5 bg-white rounded-full shadow transform transition-transform ${lowOnly ? 'translate-x-4' : 'translate-x-1'}`} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -133,7 +161,7 @@ export default function Produtos() {
           {filtrados.map((p) => {
             const estoque = Number(p.estoque ?? 0)
             const min = Number(p.estoque_minimo ?? 0)
-            const baixo = min > 0 ? (estoque <= min) : (estoque <= 5)
+            const baixo = isBaixo(p)
             const margem = (p.preco_venda && p.preco_custo) ? ((p.preco_venda - p.preco_custo) / (p.preco_venda || 1) * 100) : null
             return (
               <div key={p.id || p.uuid || p.codigo} className="card card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40">

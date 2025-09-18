@@ -20,6 +20,7 @@ export default function RelatoriosFinanceiros() {
   const [error, setError] = useState(null)
   const [vendas, setVendas] = useState([])
   const [custoPorProduto, setCustoPorProduto] = useState({})
+  const [nomeProduto, setNomeProduto] = useState({})
 
   const fmtMT = (v) => {
     try {
@@ -38,14 +39,17 @@ export default function RelatoriosFinanceiros() {
         const users = Array.isArray(usersData) ? usersData : (usersData?.items || [])
         const prods = Array.isArray(prodsData) ? prodsData : (prodsData?.items || [])
         const map = {}
+        const nmap = {}
         for (const p of prods) {
           const key = p.id || p.uuid
           if (!key) continue
           map[key] = Number(p.preco_custo ?? p.custo ?? 0)
+          nmap[key] = p.nome || p.descricao || key
         }
         if (mounted) {
           setUsuarios(users)
           setCustoPorProduto(map)
+          setNomeProduto(nmap)
         }
       } catch {}
     }
@@ -91,6 +95,33 @@ export default function RelatoriosFinanceiros() {
     return { faturamento, custo, lucro, qtdVendas, ticketMedio, itensTotal }
   }, [vendas, custoPorProduto])
 
+  const topProdutos = useMemo(() => {
+    const acc = new Map()
+    for (const v of vendas) {
+      for (const it of (v.itens || [])) {
+        const pid = it.produto_id || it.produto?.id
+        if (!pid) continue
+        const qtd = Number(it.peso_kg && it.peso_kg > 0 ? it.peso_kg : (it.quantidade ?? 0))
+        const receita = Number(it.preco_unitario ?? 0) * qtd
+        const cur = acc.get(pid) || { qtd: 0, receita: 0 }
+        cur.qtd += qtd
+        cur.receita += receita
+        acc.set(pid, cur)
+      }
+    }
+    const rows = Array.from(acc.entries()).map(([pid, v]) => ({
+      id: pid,
+      nome: nomeProduto[pid] || pid,
+      qtd: v.qtd,
+      receita: v.receita,
+    }))
+    rows.sort((a, b) => b.qtd - a.qtd)
+    return rows.slice(0, 10)
+  }, [vendas, nomeProduto])
+
+  const [mostrarTodosTop, setMostrarTodosTop] = useState(false)
+  const topVisiveis = useMemo(() => mostrarTodosTop ? topProdutos : topProdutos.slice(0, 5), [topProdutos, mostrarTodosTop])
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -127,6 +158,33 @@ export default function RelatoriosFinanceiros() {
         <Card title="Ticket Médio" value={fmtMT(resumo.ticketMedio)} color="primary" />
         <Card title="Itens Vendidos" value={resumo.itensTotal} color="secondary" />
       </section>
+
+      {/* Top 10 produtos mais vendidos */}
+      <div className="mt-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold">Top 10 produtos mais vendidos</h2>
+          {topProdutos.length > 5 && (
+            <button className="btn-outline text-sm" onClick={() => setMostrarTodosTop(v => !v)}>
+              {mostrarTodosTop ? 'Ver menos (5)' : 'Ver todos (10)'}
+            </button>
+          )}
+        </div>
+        {topProdutos.length === 0 ? (
+          <p className="text-sm text-gray-600">Sem dados para o período selecionado.</p>
+        ) : (
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {topVisiveis.map((p) => (
+              <div key={p.id} className="rounded-lg p-3 shadow-sm border bg-white">
+                <div className="font-medium text-sm truncate" title={p.nome}>{p.nome}</div>
+                <div className="mt-1 text-xs text-gray-600 flex items-center gap-2">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded bg-primary-100 text-primary-700 border border-primary-200">Qtd: {p.qtd}</span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded bg-secondary-100 text-secondary-700 border border-secondary-200">{fmtMT(p.receita)}</span>
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
+      </div>
     </div>
   )
 }
