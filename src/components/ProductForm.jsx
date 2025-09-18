@@ -74,36 +74,13 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="label">Nome</label>
-          <input className="input w-full" value={form.nome} onChange={e => update('nome', e.target.value)} required />
-        </div>
-        <div>
+      {/* Linha 1: Código, Categoria, Nome, Venda por peso */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+        <div className="sm:col-span-1">
           <label className="label">Código</label>
           <input className="input w-full" value={form.codigo} onChange={e => update('codigo', e.target.value)} />
         </div>
-        <div>
-          <label className="label">{form.venda_por_peso ? 'Preço por KG (MT)' : 'Preço por Unidade (MT)'}</label>
-          <input type="number" step="0.01" className="input w-full" value={form.preco_venda} onChange={e => update('preco_venda', e.target.value)} required />
-        </div>
-        <div>
-          <label className="label">Preço custo (MT)</label>
-          <input type="number" step="0.01" className="input w-full" value={form.preco_custo} onChange={e => update('preco_custo', e.target.value)} />
-        </div>
-        <div>
-          <label className="label">{form.venda_por_peso ? 'Estoque (KG)' : 'Estoque (Unidades)'}</label>
-          <input type="number" className="input w-full" value={form.estoque} onChange={e => update('estoque', e.target.value)} />
-        </div>
-        <div>
-          <label className="label">Estoque mínimo</label>
-          <input type="number" className="input w-full" value={form.estoque_minimo} onChange={e => update('estoque_minimo', e.target.value)} />
-        </div>
-        <div>
-          <label className="label">Unidade</label>
-          <input className="input w-full" value={form.venda_por_peso ? 'kg' : 'un'} readOnly />
-        </div>
-        <div className="sm:col-span-2">
+        <div className="sm:col-span-1">
           <label className="label">Categoria</label>
           {categoriasErro ? (
             <input className="input w-full" value={form.categoria_id} onChange={e => update('categoria_id', e.target.value)} placeholder="Categoria (fallback)" />
@@ -117,14 +94,40 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
           )}
         </div>
         <div className="sm:col-span-2">
-          <label className="label">Descrição</label>
-          <textarea className="input w-full" rows={3} value={form.descricao} onChange={e => update('descricao', e.target.value)} />
+          <label className="label">Nome</label>
+          <input className="input w-full" value={form.nome} onChange={e => update('nome', e.target.value)} required />
         </div>
-        <div className="sm:col-span-2">
+        <div className="sm:col-span-4">
           <label className="inline-flex items-center gap-2">
             <input type="checkbox" className="checkbox" checked={form.venda_por_peso} onChange={e => update('venda_por_peso', e.target.checked)} />
             <span>Venda por peso</span>
           </label>
+        </div>
+      </div>
+
+      {/* Linha 2: Descrição */}
+      <div>
+        <label className="label">Descrição</label>
+        <textarea className="input w-full" rows={3} value={form.descricao} onChange={e => update('descricao', e.target.value)} />
+      </div>
+
+      {/* Linha 3: Preço custo, Preço venda, Estoque, Estoque mínimo */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+        <div>
+          <label className="label">Preço custo (MT)</label>
+          <input type="number" step="0.01" className="input w-full" value={form.preco_custo} onChange={e => update('preco_custo', e.target.value)} />
+        </div>
+        <div>
+          <label className="label">{form.venda_por_peso ? 'Preço por KG (MT)' : 'Preço por Unidade (MT)'}</label>
+          <input type="number" step="0.01" className="input w-full" value={form.preco_venda} onChange={e => update('preco_venda', e.target.value)} required />
+        </div>
+        <div>
+          <label className="label">{form.venda_por_peso ? 'Estoque (KG)' : 'Estoque (Unidades)'}</label>
+          <input type="number" className="input w-full" value={form.estoque} onChange={e => update('estoque', e.target.value)} />
+        </div>
+        <div>
+          <label className="label">Estoque mínimo</label>
+          <input type="number" className="input w-full" value={form.estoque_minimo} onChange={e => update('estoque_minimo', e.target.value)} />
         </div>
       </div>
 
