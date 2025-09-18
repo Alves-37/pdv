@@ -56,8 +56,8 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
     // Validações básicas
     if (!form.nome?.trim()) { alert('Nome é obrigatório'); return }
     if (!form.codigo?.trim()) { alert('Código é obrigatório'); return }
-    // Se houver categorias carregadas, podemos exigir seleção (opcional)
-    // if (categorias.length > 0 && !form.categoria_id) { alert('Selecione uma categoria'); return }
+    // Categoria obrigatória (sempre)
+    if (!String(form.categoria_id || '').trim()) { alert('Categoria é obrigatória'); return }
 
     const unidade = form.venda_por_peso ? 'kg' : 'un'
     const payload = {
@@ -78,14 +78,14 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <div className="sm:col-span-1">
           <label className="label">Código</label>
-          <input className="input w-full" value={form.codigo} onChange={e => update('codigo', e.target.value)} />
+          <input className="input w-full" value={form.codigo} onChange={e => update('codigo', e.target.value)} placeholder="Ex.: 0001" />
         </div>
         <div className="sm:col-span-1">
           <label className="label">Categoria</label>
           {categoriasErro ? (
-            <input className="input w-full" value={form.categoria_id} onChange={e => update('categoria_id', e.target.value)} placeholder="Categoria (fallback)" />
+            <input className="input w-full" value={form.categoria_id} onChange={e => update('categoria_id', e.target.value)} placeholder="Ex.: Mercearia" required />
           ) : (
-            <select className="input w-full" value={form.categoria_id} onChange={e => update('categoria_id', e.target.value)}>
+            <select className="input w-full" value={form.categoria_id} onChange={e => update('categoria_id', e.target.value)} required>
               <option value="">Selecione uma categoria</option>
               {categorias.map((c) => (
                 <option key={c.id || c.uuid || c.nome} value={c.id || c.uuid || ''}>{c.nome || c.descricao || c.id}</option>
@@ -95,33 +95,33 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
         </div>
         <div className="sm:col-span-2">
           <label className="label">Nome</label>
-          <input className="input w-full" value={form.nome} onChange={e => update('nome', e.target.value)} required />
+          <input className="input w-full" value={form.nome} onChange={e => update('nome', e.target.value)} placeholder="Ex.: Arroz Branco 1kg" required />
         </div>
       </div>
 
       {/* Linha 2: Descrição */}
       <div>
         <label className="label">Descrição</label>
-        <textarea className="input w-full" rows={3} value={form.descricao} onChange={e => update('descricao', e.target.value)} />
+        <textarea className="input w-full" rows={3} value={form.descricao} onChange={e => update('descricao', e.target.value)} placeholder="Opcional: detalhes do produto" />
       </div>
 
       {/* Linha 3: Preço custo, Preço venda, Estoque, Estoque mínimo */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <div>
           <label className="label">Preço custo (MT)</label>
-          <input type="number" step="0.01" className="input w-full" value={form.preco_custo} onChange={e => update('preco_custo', e.target.value)} />
+          <input type="number" step="0.01" className="input w-full" value={form.preco_custo} onChange={e => update('preco_custo', e.target.value)} placeholder="0.00" />
         </div>
         <div>
           <label className="label">{form.venda_por_peso ? 'Preço por KG (MT)' : 'Preço por Unidade (MT)'}</label>
-          <input type="number" step="0.01" className="input w-full" value={form.preco_venda} onChange={e => update('preco_venda', e.target.value)} required />
+          <input type="number" step="0.01" className="input w-full" value={form.preco_venda} onChange={e => update('preco_venda', e.target.value)} placeholder="0.00" required />
         </div>
         <div>
           <label className="label">{form.venda_por_peso ? 'Estoque (KG)' : 'Estoque (Unidades)'}</label>
-          <input type="number" className="input w-full" value={form.estoque} onChange={e => update('estoque', e.target.value)} />
+          <input type="number" className="input w-full" value={form.estoque} onChange={e => update('estoque', e.target.value)} placeholder={form.venda_por_peso ? 'Ex.: 25.5' : 'Ex.: 10'} />
         </div>
         <div>
           <label className="label">Estoque mínimo</label>
-          <input type="number" className="input w-full" value={form.estoque_minimo} onChange={e => update('estoque_minimo', e.target.value)} />
+          <input type="number" className="input w-full" value={form.estoque_minimo} onChange={e => update('estoque_minimo', e.target.value)} placeholder="Ex.: 5" />
         </div>
       </div>
 
