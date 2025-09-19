@@ -38,38 +38,63 @@ export default function Dashboard() {
       setError(null)
       try {
         const base = import.meta.env.VITE_API_BASE_URL
-        // 1) Buscar vendas_dia e vendas_mes do servidor, se existir endpoint
+        const hoje = new Date()
+        const ymdHoje = toYMD(hoje)
+        const anoMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`
+        // 1) Buscar vendas_dia e vendas_mes do servidor com parâmetros explícitos
         const [dia, mes] = await Promise.all([
-          fetch(`${base}/api/metricas/vendas-dia`).then(r => r.ok ? r.json() : null).catch(() => null),
-          fetch(`${base}/api/metricas/vendas-mes`).then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch(`${base}/api/metricas/vendas-dia?data=${ymdHoje}`).then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch(`${base}/api/metricas/vendas-mes?ano_mes=${anoMes}`).then(r => r.ok ? r.json() : null).catch(() => null),
         ])
 
-        // 2) Calcular localmente estoque e potencial a partir dos produtos
+        // 2) Tentar obter métricas de estoque direto do backend (alinhado com PDV3)
         let valorEstoque = null
         let valorPotencial = null
+        try {
+          const mEstoque = await api.getMetricasEstoque()
+          if (mEstoque && typeof mEstoque.valor_estoque === 'number' && typeof mEstoque.valor_potencial === 'number') {
+            valorEstoque = Number(mEstoque.valor_estoque)
+            valorPotencial = Number(mEstoque.valor_potencial)
+          }
+        } catch { /* ignora e cai no fallback local */ }
+
+        // 2b) Fallback local: calcular estoque e potencial a partir dos produtos (com deduplicação e filtros)
         let baixoEstoqueCount = null
         try {
           const produtosData = await api.getProdutos('')
-          const produtos = Array.isArray(produtosData) ? produtosData : (produtosData?.items || [])
+          const arr = Array.isArray(produtosData) ? produtosData : (produtosData?.items || [])
+          // Deduplicar por id/uuid/codigo
+          const dedupMap = new Map()
+          for (const p of arr) {
+            const key = p.id || p.uuid || p.codigo
+            if (!key) continue
+            if (!dedupMap.has(key)) dedupMap.set(key, p)
+          }
+          const produtos = Array.from(dedupMap.values())
+
           let totalEstoque = 0
           let totalPotencial = 0
           let lowCount = 0
           for (const p of produtos) {
+            // Filtrar somente ativos (se campo não existir, assume ativo)
+            if (p.ativo === false) continue
             const estoque = Number(p.estoque ?? p.quantidade_estoque ?? 0)
             const precoVenda = Number(p.preco_venda ?? p.preco ?? 0)
             const precoCusto = Number(p.preco_custo ?? p.custo ?? 0)
-            totalEstoque += estoque * precoCusto
-            totalPotencial += estoque * precoVenda
+            if (Number.isFinite(estoque) && Number.isFinite(precoCusto)) {
+              totalEstoque += estoque * precoCusto
+            }
+            if (Number.isFinite(estoque) && Number.isFinite(precoVenda)) {
+              totalPotencial += estoque * precoVenda
+            }
             const min = Number(p.estoque_minimo ?? 0)
             const isLow = min > 0 ? (estoque <= min) : (estoque <= 5)
             if (isLow) lowCount += 1
           }
-          valorEstoque = totalEstoque
-          valorPotencial = totalPotencial
+          if (valorEstoque == null) valorEstoque = totalEstoque
+          if (valorPotencial == null) valorPotencial = totalPotencial
           baixoEstoqueCount = lowCount
-        } catch {
-          // mantém null se falhar
-        }
+        } catch { /* mantém null se falhar */ }
 
         // 3) Calcular localmente lucro do dia e do mês via /api/vendas/periodo
         let lucroDia = null

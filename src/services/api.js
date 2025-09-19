@@ -62,6 +62,18 @@ export const api = {
   // Vendas
   getVendas: () => request('/api/vendas/'),
   getVenda: (id) => request(`/api/vendas/id/${id}`),
+  createVenda: (payload) => {
+    const body = { ...payload }
+    if (!body.created_at) {
+      // Preservar timestamp de criação no backend
+      body.created_at = new Date().toISOString()
+    }
+    return request('/api/vendas/', { method: 'POST', body })
+  },
+  updateVenda: (id, payload) => {
+    const body = { ...payload }
+    return request(`/api/vendas/${id}`, { method: 'PUT', body })
+  },
   getVendasPeriodo: (data_inicio, data_fim, usuario_id, limit, offset = 0) => {
     const qs = new URLSearchParams()
     if (data_inicio) qs.set('data_inicio', data_inicio)
@@ -71,6 +83,8 @@ export const api = {
     if (offset) qs.set('offset', offset)
     return request(`/api/vendas/periodo?${qs.toString()}`)
   },
+  // Métricas
+  getMetricasEstoque: () => request('/api/metricas/estoque'),
 };
 
 export default api;
