@@ -156,7 +156,25 @@ export default function Vendas() {
   }
 
   const fmtData = (d) => {
-    try { return new Date(d).toLocaleString('pt-MZ') } catch { return d || '—' }
+    try {
+      if (!d) return '—'
+      let s = typeof d === 'string' ? d : String(d)
+      // Se vier ISO sem timezone (ex.: 2025-09-21T01:16:48.123), assumir UTC
+      const isISO = /^\d{4}-\d{2}-\d{2}T/.test(s)
+      const hasTZ = /Z$|[+-]\d{2}:?\d{2}$/.test(s)
+      if (isISO && !hasTZ) s = s + 'Z'
+
+      const dt = new Date(s)
+      // Formatar sempre em Africa/Maputo para consistência
+      const fmt = new Intl.DateTimeFormat('pt-MZ', {
+        dateStyle: 'short',
+        timeStyle: 'medium',
+        timeZone: 'Africa/Maputo',
+      })
+      return fmt.format(dt)
+    } catch {
+      return d || '—'
+    }
   }
 
   const filtrados = useMemo(() => {
