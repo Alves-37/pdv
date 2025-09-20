@@ -85,6 +85,11 @@ export const api = {
   },
   // Métricas
   getMetricasEstoque: () => request('/api/metricas/estoque'),
+  // Dívidas
+  getDividasAgrupadas: (qs = '') => request(`/api/dividas/agrupadas${qs}`),
+  getDividasDetalhesDia: (qs) => request(`/api/dividas/detalhes-dia${qs}`),
+  postDividasRegistrarPagamento: (payload) => request('/api/dividas/registrar-pagamento-dia', { method: 'POST', body: payload }),
+  deleteDividasRemoverDia: (payload) => request('/api/dividas/remover-dia', { method: 'DELETE', body: payload }),
 };
 
 export default api;
