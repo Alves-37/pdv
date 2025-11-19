@@ -25,7 +25,7 @@ export default function Modal({ open, title, children, onClose, actions, fullScr
     <div className={`fixed inset-0 z-50 flex ${fullScreenMobile ? 'sm:items-center sm:justify-center p-0 sm:p-4' : 'items-center justify-center p-4'} overscroll-contain`}>
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
-        className={`relative bg-white shadow-xl flex flex-col ${fullScreenMobile ? 'w-full h-full sm:h-auto sm:max-w-lg sm:rounded-xl' : 'w-full max-w-sm rounded-xl'} `}
+        className={`relative bg-white shadow-xl flex flex-col ${fullScreenMobile ? 'w-full h-full max-h-screen sm:h-auto sm:max-w-lg sm:max-h-[90vh] sm:rounded-xl' : 'w-full max-w-sm max-h-screen rounded-xl'} `}
         style={fullScreenMobile ? { paddingBottom: 'env(safe-area-inset-bottom)' } : undefined}
       >
         {/* Header sticky */}
