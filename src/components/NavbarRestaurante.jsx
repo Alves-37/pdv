@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 export default function NavbarRestaurante() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const linkBase = 'px-2 py-1 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-emerald-700 hover:bg-white/10'
+  const linkBase = 'px-2 py-1 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-700 hover:bg-white/10'
   const navItem = ({ isActive }) => `${linkBase} ${isActive ? 'text-white font-semibold' : 'text-white/80 hover:text-white'}`
   const [open, setOpen] = useState(false)
 
@@ -19,11 +19,11 @@ export default function NavbarRestaurante() {
   }
 
   return (
-    <nav className="sticky top-0 z-40 bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-900 shadow">
+    <nav className="sticky top-0 z-40 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900 shadow">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 items-center justify-between">
           <div className="flex items-center min-w-0">
-            <Link to="/restaurante/dashboard" className="text-lg font-bold text-white whitespace-nowrap rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-emerald-700">
+            <Link to="/restaurante/dashboard" className="text-lg font-bold text-white whitespace-nowrap rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-700">
               Restaurante
             </Link>
             <span className="ml-2 text-sm text-white/80 truncate max-w-[140px] font-bold">
@@ -45,7 +45,7 @@ export default function NavbarRestaurante() {
           <div className="hidden md:flex items-center gap-3">
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-sm font-medium border border-white/30 text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-emerald-700 hover:bg-white/10"
+              className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-sm font-medium border border-white/30 text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-700 hover:bg-white/10"
               onClick={handleSwitchBusiness}
             >
               Trocar negócio
@@ -53,7 +53,7 @@ export default function NavbarRestaurante() {
             <button
               aria-label="Terminar sessão"
               title="Sair"
-              className="inline-flex items-center justify-center rounded-lg p-2 border border-white/30 text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-emerald-700 hover:bg-white/10"
+              className="inline-flex items-center justify-center rounded-lg p-2 border border-white/30 text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-700 hover:bg-white/10"
               onClick={handleLogout}
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -68,7 +68,7 @@ export default function NavbarRestaurante() {
           <div className="md:hidden flex items-center gap-2">
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium border border-white/30 text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-emerald-700 hover:bg-white/10"
+              className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium border border-white/30 text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-700 hover:bg-white/10"
               onClick={handleSwitchBusiness}
             >
               Trocar
@@ -76,7 +76,7 @@ export default function NavbarRestaurante() {
             <button
               aria-label="Terminar sessão"
               title="Sair"
-              className="inline-flex items-center justify-center rounded-lg p-2 border border-white/30 text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-emerald-700 hover:bg-white/10"
+              className="inline-flex items-center justify-center rounded-lg p-2 border border-white/30 text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-700 hover:bg-white/10"
               onClick={handleLogout}
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -109,7 +109,7 @@ export default function NavbarRestaurante() {
 
       {/* Mobile panel */}
       <div
-        className={`md:hidden border-t border-white/10 bg-emerald-800/95 backdrop-blur transition-all duration-300 ${open ? 'opacity-100 translate-y-0 max-h-[480px]' : 'opacity-0 -translate-y-2 max-h-0 overflow-hidden'}`}
+        className={`md:hidden border-t border-white/10 bg-primary-800/95 backdrop-blur transition-all duration-300 ${open ? 'opacity-100 translate-y-0 max-h-[480px]' : 'opacity-0 -translate-y-2 max-h-0 overflow-hidden'}`}
       >
         <div className="px-4 py-3 space-y-3">
           <div className="flex items-center justify-between">

@@ -25,7 +25,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
       {/* Desktop layout (two panels) */}
       <div className="hidden lg:flex bg-white rounded-2xl shadow-2xl overflow-hidden max-w-4xl w-full">
         {/* Left branding panel */}
@@ -159,8 +159,8 @@ export default function Login() {
       {/* Mobile layout (stacked) */}
       <div className="lg:hidden w-full max-w-sm">
         {/* Header Mobile */}
-        <div className="text-center mb-8">
-          <div className="mx-auto h-16 w-16 bg-blue-900 rounded-full flex items-center justify-center mb-4">
+        <div className="text-center mb-8 text-slate-100">
+          <div className="mx-auto h-16 w-16 bg-blue-900 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-blue-900/40">
             {/* ShoppingCart icon */}
             <svg className="h-8 w-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="9" cy="21" r="1" />
@@ -168,11 +168,11 @@ export default function Login() {
               <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61l1.38-7.39H6" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-blue-900 mb-1">Sistema de Gestão</h1>
-          <p className="text-gray-600 text-sm">Sua solução completa para gestão comercial</p>
+          <h1 className="text-2xl font-bold mb-1">Sistema de Gestão</h1>
+          <p className="text-slate-300 text-sm">Sua solução completa para gestão comercial</p>
           <div className="mt-2">
-            <span className="text-sm font-medium text-blue-900">Neotrix</span>
-            <span className="text-xs text-gray-500 italic ml-1">- Tecnologias ao seu alcance</span>
+            <span className="text-sm font-medium text-slate-100">Neotrix</span>
+            <span className="text-xs text-slate-400 italic ml-1">- Tecnologias ao seu alcance</span>
           </div>
         </div>
 
