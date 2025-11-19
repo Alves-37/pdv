@@ -17,7 +17,8 @@ export default function Login() {
     try {
       const result = await login(username, password)
       const ok = (typeof result === 'object' && result && 'success' in result) ? result.success : !!result
-      if (ok) navigate('/dashboard', { replace: true })
+      // Após login bem-sucedido, ir para tela de seleção de tipo de negócio
+      if (ok) navigate('/selecionar-tipo', { replace: true })
     } finally {
       setIsLoading(false)
     }
