@@ -85,6 +85,13 @@ export const api = {
   },
   // Métricas
   getMetricasEstoque: () => request('/api/metricas/estoque'),
+
+  // Configuração da empresa
+  getEmpresaConfig: () => request('/api/config/empresa'),
+  updateEmpresaConfig: (payload) => request('/api/config/empresa', { method: 'PUT', body: payload }),
+
+  // Admin
+  resetDadosOnline: () => request('/api/admin/reset-dados', { method: 'POST' }),
 };
 
 export default api;

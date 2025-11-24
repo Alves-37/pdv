@@ -8,6 +8,7 @@ import Usuarios from './pages/Usuarios'
 import Clientes from './pages/Clientes'
 import Vendas from './pages/Vendas'
 import RelatoriosFinanceiros from './pages/RelatoriosFinanceiros'
+import Configuracoes from './pages/Configuracoes'
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route path="/clientes" element={<Clientes />} />
           <Route path="/vendas" element={<Vendas />} />
           <Route path="/relatorios-financeiros" element={<RelatoriosFinanceiros />} />
+          <Route path="/configuracoes" element={<Configuracoes />} />
 
           {/* Redirect raiz para dashboard */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

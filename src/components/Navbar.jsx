@@ -38,6 +38,7 @@ export default function Navbar() {
             <NavLink to="/usuarios" className={navItem}>Usuários</NavLink>
             <NavLink to="/vendas" className={navItem}>Vendas</NavLink>
             <NavLink to="/relatorios-financeiros" className={navItem}>Relatórios</NavLink>
+            <NavLink to="/configuracoes" className={navItem}>Configurações</NavLink>
           </div>
 
           {/* Desktop user actions */}
@@ -107,6 +108,7 @@ export default function Navbar() {
             <NavLink to="/usuarios" className={navItem} onClick={() => setOpen(false)}>Usuários</NavLink>
             <NavLink to="/vendas" className={navItem} onClick={() => setOpen(false)}>Vendas</NavLink>
             <NavLink to="/relatorios-financeiros" className={navItem} onClick={() => setOpen(false)}>Relatórios</NavLink>
+            <NavLink to="/configuracoes" className={navItem} onClick={() => setOpen(false)}>Configurações</NavLink>
           </div>
         </div>
       </div>
