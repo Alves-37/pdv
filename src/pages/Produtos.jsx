@@ -101,13 +101,71 @@ export default function Produtos() {
     <div className="space-y-4">
       {/* Header + busca (mobile-first) */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-2xl font-bold">Produtos</h1>
           <button
             className="btn-primary"
             onClick={() => { setEditing(null); setModalOpen(true) }}
           >
             Novo produto
+          </button>
+          <button
+            type="button"
+            className="btn-outline"
+            title="Gerar relatório PDF de todos os produtos"
+            onClick={async () => {
+              try {
+                const token = localStorage.getItem('access_token')
+                const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/relatorios/produtos`, {
+                  headers: token ? { Authorization: `Bearer ${token}` } : {},
+                })
+                if (!res.ok) {
+                  throw new Error(`HTTP ${res.status}`)
+                }
+                const blob = await res.blob()
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = 'produtos.pdf'
+                document.body.appendChild(a)
+                a.click()
+                a.remove()
+                URL.revokeObjectURL(url)
+              } catch (e) {
+                alert(e.message || 'Falha ao gerar PDF de produtos')
+              }
+            }}
+          >
+            PDF (todos)
+          </button>
+          <button
+            type="button"
+            className="btn-outline"
+            title="Gerar relatório PDF de produtos com baixo estoque"
+            onClick={async () => {
+              try {
+                const token = localStorage.getItem('access_token')
+                const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/relatorios/produtos?baixo_estoque=true`, {
+                  headers: token ? { Authorization: `Bearer ${token}` } : {},
+                })
+                if (!res.ok) {
+                  throw new Error(`HTTP ${res.status}`)
+                }
+                const blob = await res.blob()
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = 'produtos_baixo_estoque.pdf'
+                document.body.appendChild(a)
+                a.click()
+                a.remove()
+                URL.revokeObjectURL(url)
+              } catch (e) {
+                alert(e.message || 'Falha ao gerar PDF de produtos com baixo estoque')
+              }
+            }}
+          >
+            PDF (baixo estoque)
           </button>
         </div>
         <div className="flex-1 min-w-[220px] sm:min-w-[320px] max-w-xl">
