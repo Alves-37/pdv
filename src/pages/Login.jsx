@@ -30,12 +30,12 @@ export default function Login() {
         {/* Left branding panel */}
         <div className="bg-blue-900 p-10 flex flex-col justify-center items-center text-white w-96">
           <div className="text-center space-y-6">
-            {/* ShoppingCart icon */}
-            <svg className="h-16 w-16 text-white mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="9" cy="21" r="1" />
-              <circle cx="20" cy="21" r="1" />
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61l1.38-7.39H6" />
-            </svg>
+            {/* Logo nelson */}
+            <img
+              src="/nelson.jpg"
+              alt="Nelson"
+              className="h-20 w-20 rounded-full object-cover mx-auto shadow-lg border border-white/30"
+            />
             <div>
               <h2 className="text-2xl font-bold">Sistema de Gestão</h2>
               <p className="text-blue-100 text-sm">Sua solução completa para gestão comercial</p>
@@ -159,13 +159,13 @@ export default function Login() {
       <div className="lg:hidden w-full max-w-sm">
         {/* Header Mobile */}
         <div className="text-center mb-8">
-          <div className="mx-auto h-16 w-16 bg-blue-900 rounded-full flex items-center justify-center mb-4">
-            {/* ShoppingCart icon */}
-            <svg className="h-8 w-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="9" cy="21" r="1" />
-              <circle cx="20" cy="21" r="1" />
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61l1.38-7.39H6" />
-            </svg>
+          <div className="mx-auto h-16 w-16 bg-blue-900 rounded-full flex items-center justify-center mb-4 overflow-hidden">
+            {/* Logo nelson */}
+            <img
+              src="/nelson.jpg"
+              alt="Nelson"
+              className="h-full w-full object-cover"
+            />
           </div>
           <h1 className="text-2xl font-bold text-blue-900 mb-1">Sistema de Gestão</h1>
           <p className="text-gray-600 text-sm">Sua solução completa para gestão comercial</p>
