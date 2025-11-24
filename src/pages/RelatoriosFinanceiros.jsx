@@ -145,6 +145,70 @@ export default function RelatoriosFinanceiros() {
             </select>
           </div>
           <button className="btn-primary" onClick={buscar} disabled={loading}>Filtrar</button>
+          <button
+            type="button"
+            className="btn-outline"
+            title="Baixar relatório de vendas em PDF"
+            onClick={async () => {
+              try {
+                const base = import.meta.env.VITE_API_BASE_URL
+                const token = localStorage.getItem('access_token')
+                const qs = new URLSearchParams()
+                if (inicio) qs.set('data_inicio', inicio)
+                if (fim) qs.set('data_fim', fim)
+                if (usuarioId) qs.set('usuario_id', usuarioId)
+                const res = await fetch(`${base}/api/relatorios/vendas?${qs.toString()}`, {
+                  headers: token ? { Authorization: `Bearer ${token}` } : {},
+                })
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                const blob = await res.blob()
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = 'vendas_periodo.pdf'
+                document.body.appendChild(a)
+                a.click()
+                a.remove()
+                URL.revokeObjectURL(url)
+              } catch (e) {
+                alert(e.message || 'Falha ao gerar PDF de vendas')
+              }
+            }}
+          >
+            PDF Vendas
+          </button>
+          <button
+            type="button"
+            className="btn-outline"
+            title="Baixar relatório financeiro em PDF"
+            onClick={async () => {
+              try {
+                const base = import.meta.env.VITE_API_BASE_URL
+                const token = localStorage.getItem('access_token')
+                const qs = new URLSearchParams()
+                if (inicio) qs.set('data_inicio', inicio)
+                if (fim) qs.set('data_fim', fim)
+                if (usuarioId) qs.set('usuario_id', usuarioId)
+                const res = await fetch(`${base}/api/relatorios/financeiro?${qs.toString()}`, {
+                  headers: token ? { Authorization: `Bearer ${token}` } : {},
+                })
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                const blob = await res.blob()
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = 'relatorio_financeiro.pdf'
+                document.body.appendChild(a)
+                a.click()
+                a.remove()
+                URL.revokeObjectURL(url)
+              } catch (e) {
+                alert(e.message || 'Falha ao gerar PDF financeiro')
+              }
+            }}
+          >
+            PDF Financeiro
+          </button>
         </div>
       </div>
 
