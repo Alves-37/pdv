@@ -11,6 +11,7 @@ export default function Configuracoes() {
   const [resetOpen, setResetOpen] = useState(false)
   const [resetText, setResetText] = useState('')
   const [resetting, setResetting] = useState(false)
+  const [showEmpresaForm, setShowEmpresaForm] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -87,58 +88,82 @@ export default function Configuracoes() {
         {loading ? (
           <p className="text-sm text-gray-500">Carregando dados da empresa...</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Nome da empresa</label>
-              <input
-                className="input w-full"
-                value={empresa.nome}
-                onChange={e => setEmpresa(prev => ({ ...prev, nome: e.target.value }))}
-              />
+          <>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1 text-sm text-gray-700">
+                <p className="font-medium">{empresa.nome || 'Sem nome definido'}</p>
+                <p className="text-xs text-gray-500">
+                  {empresa.nuit && <span>NUIT: {empresa.nuit}</span>}
+                  {empresa.telefone && <span>{empresa.nuit ? ' · ' : ''}Tel: {empresa.telefone}</span>}
+                  {empresa.email && <span>{(empresa.nuit || empresa.telefone) ? ' · ' : ''}{empresa.email}</span>}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn-outline text-xs md:text-sm"
+                onClick={() => setShowEmpresaForm(v => !v)}
+              >
+                {showEmpresaForm ? 'Fechar edição' : 'Ver / editar dados'}
+              </button>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">NUIT</label>
-              <input
-                className="input w-full"
-                value={empresa.nuit}
-                onChange={e => setEmpresa(prev => ({ ...prev, nuit: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Telefone</label>
-              <input
-                className="input w-full"
-                value={empresa.telefone}
-                onChange={e => setEmpresa(prev => ({ ...prev, telefone: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">E-mail</label>
-              <input
-                className="input w-full"
-                value={empresa.email}
-                onChange={e => setEmpresa(prev => ({ ...prev, email: e.target.value }))}
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Endereço</label>
-              <textarea
-                className="input w-full min-h-[80px]"
-                value={empresa.endereco}
-                onChange={e => setEmpresa(prev => ({ ...prev, endereco: e.target.value }))}
-              />
-            </div>
-          </div>
+
+            {showEmpresaForm && (
+              <>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Nome da empresa</label>
+                    <input
+                      className="input w-full"
+                      value={empresa.nome}
+                      onChange={e => setEmpresa(prev => ({ ...prev, nome: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">NUIT</label>
+                    <input
+                      className="input w-full"
+                      value={empresa.nuit}
+                      onChange={e => setEmpresa(prev => ({ ...prev, nuit: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Telefone</label>
+                    <input
+                      className="input w-full"
+                      value={empresa.telefone}
+                      onChange={e => setEmpresa(prev => ({ ...prev, telefone: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">E-mail</label>
+                    <input
+                      className="input w-full"
+                      value={empresa.email}
+                      onChange={e => setEmpresa(prev => ({ ...prev, email: e.target.value }))}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Endereço</label>
+                    <textarea
+                      className="input w-full min-h-[80px]"
+                      value={empresa.endereco}
+                      onChange={e => setEmpresa(prev => ({ ...prev, endereco: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end pt-2">
+                  <button
+                    className="btn-primary"
+                    onClick={salvar}
+                    disabled={saving || loading}
+                  >
+                    {saving ? 'Salvando...' : 'Salvar dados'}
+                  </button>
+                </div>
+              </>
+            )}
+          </>
         )}
-        <div className="flex justify-end pt-2">
-          <button
-            className="btn-primary"
-            onClick={salvar}
-            disabled={saving || loading}
-          >
-            {saving ? 'Salvando...' : 'Salvar dados'}
-          </button>
-        </div>
       </section>
 
       <section className="card space-y-4">
