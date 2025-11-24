@@ -209,6 +209,42 @@ export default function RelatoriosFinanceiros() {
           >
             PDF Financeiro
           </button>
+          <button
+            type="button"
+            className="btn-outline"
+            title="Exportar faturas do mês em CSV"
+            onClick={async () => {
+              try {
+                if (!inicio) {
+                  alert('Defina uma data inicial para determinar o mês.');
+                  return;
+                }
+                const base = import.meta.env.VITE_API_BASE_URL
+                const token = localStorage.getItem('access_token')
+                const d = new Date(inicio)
+                const ano = d.getFullYear()
+                const mes = d.getMonth() + 1
+                const qs = new URLSearchParams({ ano: String(ano), mes: String(mes) })
+                const res = await fetch(`${base}/api/relatorios/faturas-mensal?${qs.toString()}`, {
+                  headers: token ? { Authorization: `Bearer ${token}` } : {},
+                })
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                const blob = await res.blob()
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `faturas_${ano}_${String(mes).padStart(2, '0')}.csv`
+                document.body.appendChild(a)
+                a.click()
+                a.remove()
+                URL.revokeObjectURL(url)
+              } catch (e) {
+                alert(e.message || 'Falha ao exportar faturas (CSV)')
+              }
+            }}
+          >
+            CSV Faturas
+          </button>
         </div>
       </div>
 
