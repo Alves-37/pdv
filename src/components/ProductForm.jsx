@@ -13,6 +13,7 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
     venda_por_peso: false,
     categoria_id: '',
     descricao: '',
+    taxa_iva: '0',
   })
   const [categorias, setCategorias] = useState([])
   const [categoriasErro, setCategoriasErro] = useState(null)
@@ -30,6 +31,7 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
         venda_por_peso: Boolean(initial.venda_por_peso),
         categoria_id: initial.categoria_id ?? '',
         descricao: initial.descricao ?? '',
+        taxa_iva: (initial.taxa_iva ?? 0).toString(),
       })
     }
   }, [initial])
@@ -68,6 +70,7 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
       estoque_minimo: form.estoque_minimo === '' ? null : Number(form.estoque_minimo),
       categoria_id: form.categoria_id === '' ? null : form.categoria_id,
       unidade_medida: unidade,
+      taxa_iva: Number(form.taxa_iva || 0),
     }
     onSubmit?.(payload)
   }
@@ -105,23 +108,63 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
         <textarea className="input w-full" rows={3} value={form.descricao} onChange={e => update('descricao', e.target.value)} placeholder="Opcional: detalhes do produto" />
       </div>
 
-      {/* Linha 3: Preço custo, Preço venda, Estoque, Estoque mínimo */}
+      {/* Linha 3: Preço custo, Preço venda, IVA, Estoque, Estoque mínimo */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <div>
           <label className="label">Preço custo (MT)</label>
-          <input type="number" step="0.01" className="input w-full" value={form.preco_custo} onChange={e => update('preco_custo', e.target.value)} placeholder="0.00" />
+          <input
+            type="number"
+            step="0.01"
+            className="input w-full"
+            value={form.preco_custo}
+            onChange={e => update('preco_custo', e.target.value)}
+            placeholder="0.00"
+          />
         </div>
         <div>
           <label className="label">{form.venda_por_peso ? 'Preço por KG (MT)' : 'Preço por Unidade (MT)'}</label>
-          <input type="number" step="0.01" className="input w-full" value={form.preco_venda} onChange={e => update('preco_venda', e.target.value)} placeholder="0.00" required />
+          <input
+            type="number"
+            step="0.01"
+            className="input w-full"
+            value={form.preco_venda}
+            onChange={e => update('preco_venda', e.target.value)}
+            placeholder="0.00"
+            required
+          />
+        </div>
+        <div>
+          <label className="label">IVA (%)</label>
+          <input
+            type="number"
+            step="0.1"
+            min="0"
+            max="100"
+            className="input w-full"
+            value={form.taxa_iva}
+            onChange={e => update('taxa_iva', e.target.value)}
+            placeholder="Ex.: 16.5"
+          />
         </div>
         <div>
           <label className="label">{form.venda_por_peso ? 'Estoque (KG)' : 'Estoque (Unidades)'}</label>
-          <input type="number" className="input w-full" value={form.estoque} onChange={e => update('estoque', e.target.value)} placeholder={form.venda_por_peso ? 'Ex.: 25.5' : 'Ex.: 10'} />
+          <input
+            type="number"
+            className="input w-full"
+            value={form.estoque}
+            onChange={e => update('estoque', e.target.value)}
+            placeholder={form.venda_por_peso ? 'Ex.: 25.5' : 'Ex.: 10'}
+          />
         </div>
         <div>
           <label className="label">Estoque mínimo</label>
-          <input type="number" className="input w-full" value={form.estoque_minimo} onChange={e => update('estoque_minimo', e.target.value)} placeholder="Ex.: 5" />
+          <input
+            type="number"
+            className="input w-full"
+            value={form.estoque_minimo}
+            onChange={e => update('estoque_minimo', e.target.value)}
+            placeholder="Ex.: 5"
+          />
         </div>
       </div>
 

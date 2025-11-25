@@ -80,7 +80,14 @@ export default function Produtos() {
         const codigo = (p.codigo || '').toLowerCase()
         const categoria = String(p.categoria_id || '').toLowerCase()
         const unidade = (p.unidade_medida || '').toLowerCase()
-        return nome.includes(debouncedQ) || codigo.includes(debouncedQ) || categoria.includes(debouncedQ) || unidade.includes(debouncedQ)
+        const taxaIva = String(p.taxa_iva ?? '').toLowerCase()
+        return (
+          nome.includes(debouncedQ) ||
+          codigo.includes(debouncedQ) ||
+          categoria.includes(debouncedQ) ||
+          unidade.includes(debouncedQ) ||
+          taxaIva.includes(debouncedQ)
+        )
       })
     }
     if (lowOnly) {
@@ -232,6 +239,11 @@ export default function Produtos() {
                       {typeof p.venda_por_peso !== 'undefined' && (
                         <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
                           {p.venda_por_peso ? 'Peso' : (p.unidade_medida || 'un')}
+                        </span>
+                      )}
+                      {typeof p.taxa_iva !== 'undefined' && p.taxa_iva !== null && (
+                        <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                          IVA: {Number(p.taxa_iva || 0).toFixed(1)}%
                         </span>
                       )}
                       {p.categoria_id != null && (
