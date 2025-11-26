@@ -21,7 +21,6 @@ export default function RelatoriosFinanceiros() {
   const [vendas, setVendas] = useState([])
   const [custoPorProduto, setCustoPorProduto] = useState({})
   const [nomeProduto, setNomeProduto] = useState({})
-  const [ivaResumo, setIvaResumo] = useState([])
 
   const fmtMT = (v) => {
     try {
@@ -65,30 +64,9 @@ export default function RelatoriosFinanceiros() {
       const data = await api.getVendasPeriodo(inicio, fim, usuarioId || undefined)
       const arr = Array.isArray(data) ? data : (data?.items || [])
       setVendas(arr)
-
-      // Carregar resumo de IVA do backend usando o mesmo intervalo
-      try {
-        const base = import.meta.env.VITE_API_BASE_URL
-        const token = localStorage.getItem('access_token')
-        const qs = new URLSearchParams()
-        if (inicio) qs.set('data_inicio', inicio)
-        if (fim) qs.set('data_fim', fim)
-        const res = await fetch(`${base}/api/relatorios/iva?${qs.toString()}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        })
-        if (res.ok) {
-          const d = await res.json()
-          setIvaResumo(Array.isArray(d?.itens) ? d.itens : [])
-        } else {
-          setIvaResumo([])
-        }
-      } catch {
-        setIvaResumo([])
-      }
     } catch (e) {
       setError(e.message)
       setVendas([])
-      setIvaResumo([])
     } finally {
       setLoading(false)
     }
@@ -280,35 +258,6 @@ export default function RelatoriosFinanceiros() {
         <Card title="Ticket Médio" value={fmtMT(resumo.ticketMedio)} color="primary" />
         <Card title="Itens Vendidos" value={resumo.itensTotal} color="secondary" />
       </section>
-
-      {/* Resumo de IVA por taxa */}
-      {ivaResumo.length > 0 && (
-        <div className="mt-6">
-          <h2 className="text-lg font-semibold mb-2">Resumo de IVA por taxa</h2>
-          <div className="overflow-x-auto rounded-lg border bg-white">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-700">Taxa IVA (%)</th>
-                  <th className="px-3 py-2 text-right font-semibold text-gray-700">Base</th>
-                  <th className="px-3 py-2 text-right font-semibold text-gray-700">IVA</th>
-                  <th className="px-3 py-2 text-right font-semibold text-gray-700">Faturamento</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ivaResumo.map((row) => (
-                  <tr key={row.taxa_iva} className="border-t last:border-b">
-                    <td className="px-3 py-1 text-gray-800">{row.taxa_iva}</td>
-                    <td className="px-3 py-1 text-right text-gray-800">{fmtMT(row.base_total)}</td>
-                    <td className="px-3 py-1 text-right text-gray-800">{fmtMT(row.iva_total)}</td>
-                    <td className="px-3 py-1 text-right text-gray-800">{fmtMT(row.faturamento_total)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
 
       {/* Top 10 produtos mais vendidos */}
       <div className="mt-6">
