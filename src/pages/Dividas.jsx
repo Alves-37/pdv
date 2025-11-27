@@ -1,0 +1,188 @@
+import { useEffect, useMemo, useState } from 'react'
+import { api } from '../services/api'
+
+export default function Dividas() {
+  const [todos, setTodos] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [q, setQ] = useState('') // filtro simples por cliente/observação
+
+  async function load() {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await api.getDividasAbertas()
+      const arr = Array.isArray(data) ? data : (data?.items || [])
+      setTodos(arr)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { load() }, [])
+
+  // Atualização automática: polling e refresh quando a aba volta ao foco
+  useEffect(() => {
+    const intervalId = setInterval(() => { load() }, 20000)
+    const onFocus = () => load()
+    const onVisibility = () => { if (document.visibilityState === 'visible') load() }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      clearInterval(intervalId)
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [])
+
+  // Debounce do filtro
+  const [debouncedQ, setDebouncedQ] = useState('')
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQ(q.trim().toLowerCase()), 250)
+    return () => clearTimeout(id)
+  }, [q])
+
+  const fmtMT = (v) => {
+    if (v === null || v === undefined) return '—'
+    try {
+      const num = new Intl.NumberFormat('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(v))
+      return `MT ${num}`
+    } catch { return `${v}` }
+  }
+
+  const fmtData = (d) => {
+    try {
+      if (!d) return '—'
+      let s = typeof d === 'string' ? d : String(d)
+      const isISO = /^\d{4}-\d{2}-\d{2}T/.test(s)
+      const hasTZ = /Z$|[+-]\d{2}:?\d{2}$/.test(s)
+      if (isISO && !hasTZ) s = s + 'Z'
+      const dt = new Date(s)
+      const fmt = new Intl.DateTimeFormat('pt-MZ', {
+        dateStyle: 'short',
+        timeStyle: 'medium',
+        timeZone: 'Africa/Maputo',
+      })
+      return fmt.format(dt)
+    } catch {
+      return d || '—'
+    }
+  }
+
+  const filtradas = useMemo(() => {
+    if (!debouncedQ) return todos
+    return todos.filter(d => {
+      const clienteNome = (d.cliente_nome || '').toLowerCase()
+      const obs = (d.observacao || '').toLowerCase()
+      const status = (d.status || '').toLowerCase()
+      return clienteNome.includes(debouncedQ) || obs.includes(debouncedQ) || status.includes(debouncedQ)
+    })
+  }, [todos, debouncedQ])
+
+  const Skeleton = () => (
+    <div className="card animate-pulse">
+      <div className="h-4 w-40 bg-gray-200 rounded" />
+      <div className="mt-3 h-5 w-28 bg-gray-200 rounded" />
+    </div>
+  )
+
+  async function handlePagar(divida) {
+    const restante = Number(divida.valor_total ?? 0) - Number(divida.valor_pago ?? 0)
+    if (restante <= 0) return
+    if (!window.confirm(`Registrar pagamento de ${fmtMT(restante)} para esta dívida?`)) return
+    try {
+      await api.pagarDivida(divida.id, {
+        valor: restante,
+        forma_pagamento: 'dinheiro',
+        usuario_id: null,
+      })
+      await load()
+    } catch (e) {
+      alert(e.message || 'Falha ao registrar pagamento')
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h1 className="text-2xl font-bold">Dívidas</h1>
+        <div className="flex-1 min-w-[220px] sm:min-w-[320px] max-w-xl">
+          <label htmlFor="buscar" className="sr-only">Buscar</label>
+          <div className="relative">
+            <input
+              id="buscar"
+              className="input w-full pl-9"
+              placeholder="Buscar por cliente, observação ou status"
+              value={q}
+              onChange={e => setQ(e.target.value)}
+            />
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {error && <p className="text-red-600">{error}</p>}
+
+      {loading && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} />)}
+        </div>
+      )}
+
+      {!loading && filtradas.length === 0 && (
+        <div className="card text-center py-10">
+          <div className="mx-auto h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
+            <svg className="h-6 w-6 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h18v14H3z"/><path d="M3 9h18"/></svg>
+          </div>
+          <p className="mt-3 text-gray-600">Nenhuma dívida aberta encontrada.</p>
+        </div>
+      )}
+
+      {!loading && filtradas.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtradas.map((d) => {
+            const restante = Number(d.valor_total ?? 0) - Number(d.valor_pago ?? 0)
+            return (
+              <div key={d.id || d.id_local} className="card card-hover flex flex-col gap-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate" title={d.observacao || 'Dívida'}>
+                      Dívida {d.id_local != null ? `#${d.id_local}` : ''}
+                    </h3>
+                    <div className="text-xs sm:text-sm text-gray-500">Cliente: {d.cliente_nome || '—'}</div>
+                    <div className="text-xs sm:text-sm text-gray-500">Data: {fmtData(d.data_divida)}</div>
+                    {d.observacao && (
+                      <div className="mt-1 text-xs text-gray-600 line-clamp-2" title={d.observacao}>{d.observacao}</div>
+                    )}
+                    <div className="mt-1 flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Status: {d.status}</span>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-xs text-gray-500">Total</div>
+                    <div className="text-lg sm:text-xl font-semibold text-green-600">{fmtMT(d.valor_total)}</div>
+                    <div className="mt-1 text-xs text-gray-500">Pago: {fmtMT(d.valor_pago)}</div>
+                    <div className="mt-0.5 text-xs text-gray-700 font-medium">Restante: {fmtMT(restante)}</div>
+                  </div>
+                </div>
+                <div className="pt-2 border-t flex items-center justify-end">
+                  <button
+                    className="btn-primary text-xs px-3 py-1 disabled:opacity-50"
+                    disabled={restante <= 0}
+                    onClick={() => handlePagar(d)}
+                  >
+                    Registrar pagamento
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}

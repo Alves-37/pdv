@@ -83,6 +83,38 @@ export const api = {
     if (offset) qs.set('offset', offset)
     return request(`/api/vendas/periodo?${qs.toString()}`)
   },
+  // Dívidas
+  /**
+   * Cria uma nova dívida no backend.
+   * payload deve seguir o modelo DividaCreate:
+   * {
+   *   id_local?: number,
+   *   cliente_id?: string (UUID),
+   *   usuario_id?: string (UUID),
+   *   observacao?: string,
+   *   desconto_aplicado?: number,
+   *   percentual_desconto?: number,
+   *   itens: [{ produto_id: string (UUID), quantidade, preco_unitario, subtotal }]
+   * }
+   */
+  createDivida: (payload) => request('/api/dividas/', { method: 'POST', body: payload }),
+
+  /**
+   * Lista dívidas abertas. Se clienteId (UUID) for informado, filtra por cliente.
+   */
+  getDividasAbertas: (clienteId) => {
+    const qs = clienteId ? `?cliente_id=${encodeURIComponent(clienteId)}` : ''
+    return request(`/api/dividas/abertas${qs}`)
+  },
+
+  /**
+   * Registra pagamento de uma dívida existente.
+   * dividaId: UUID da dívida no backend
+   * payload: { valor: number, forma_pagamento: string, usuario_id?: string(UUID) }
+   */
+  pagarDivida: (dividaId, payload) => (
+    request(`/api/dividas/${dividaId}/pagamentos`, { method: 'POST', body: payload })
+  ),
   // Métricas
   getMetricasEstoque: () => request('/api/metricas/estoque'),
 
