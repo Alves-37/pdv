@@ -1,46 +1,22 @@
-import { useEffect, useState } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-
-const LAUNCHER_URL = import.meta.env.VITE_LAUNCHER_URL
 
 export default function Navbar() {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
   // Classes base para acessibilidade e interação: focus primeiro, depois hover
   const linkBase = 'px-2 py-1 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-700 hover:bg-white/10'
   const navItem = ({ isActive }) => `${linkBase} ${isActive ? 'text-white font-semibold' : 'text-white/80 hover:text-white'}`
   const [open, setOpen] = useState(false)
-  const [estabNome, setEstabNome] = useState(() => {
-    if (typeof window === 'undefined') return ''
-    try {
-      return localStorage.getItem('estab_nome') || ''
-    } catch {
-      return ''
-    }
-  })
-
-  useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search)
-      const nome = params.get('launcher_estab_nome') || ''
-      if (nome) {
-        setEstabNome(nome)
-        try {
-          localStorage.setItem('estab_nome', nome)
-        } catch {
-          // ignore
-        }
-      }
-    } catch {
-      // ignore
-    }
-  }, [])
 
   function handleLogout() {
     logout()
-    if (LAUNCHER_URL) {
-      window.location.href = LAUNCHER_URL
-    }
+    navigate('/login', { replace: true })
+  }
+
+  function handleSwitchBusiness() {
+    navigate('/selecionar-tipo', { replace: true })
   }
 
   return (
@@ -49,12 +25,13 @@ export default function Navbar() {
         <div className="flex h-14 items-center justify-between">
           {/* Brand */}
           <div className="flex items-center min-w-0">
-            <Link
-              to="/"
-              className={`text-lg font-bold text-white whitespace-nowrap rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-700`}
-            >
-              {`Bem vindo(a) ${estabNome || user?.nome || user?.usuario || ''}`}
+            <Link to="/" className={`text-lg font-bold text-white whitespace-nowrap rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-700`}>
+              Bem vindo(a)
             </Link>
+            {/* Nome do usuário ao lado da marca */}
+            <span className="ml-2 text-sm text-white/80 truncate max-w-[140px] font-bold">
+              {user?.nome || user?.usuario || ''}
+            </span>
           </div>
 
           {/* Desktop nav */}
@@ -64,13 +41,18 @@ export default function Navbar() {
             <NavLink to="/clientes" className={navItem}>Clientes</NavLink>
             <NavLink to="/usuarios" className={navItem}>Usuários</NavLink>
             <NavLink to="/vendas" className={navItem}>Vendas</NavLink>
-            <NavLink to="/dividas" className={navItem}>Dívidas</NavLink>
             <NavLink to="/relatorios-financeiros" className={navItem}>Relatórios</NavLink>
-            <NavLink to="/configuracoes" className={navItem}>Configurações</NavLink>
           </div>
 
           {/* Desktop user actions */}
           <div className="hidden md:flex items-center gap-3">
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-sm font-medium border border-white/30 text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-700 hover:bg-white/10"
+              onClick={handleSwitchBusiness}
+            >
+              Trocar negócio
+            </button>
             <button
               aria-label="Terminar sessão"
               title="Sair"
@@ -87,6 +69,13 @@ export default function Navbar() {
 
           {/* Mobile actions: Sair + hamburger */}
           <div className="md:hidden flex items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium border border-white/30 text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-700 hover:bg-white/10"
+              onClick={handleSwitchBusiness}
+            >
+              Trocar
+            </button>
             <button
               aria-label="Terminar sessão"
               title="Sair"
@@ -135,9 +124,7 @@ export default function Navbar() {
             <NavLink to="/clientes" className={navItem} onClick={() => setOpen(false)}>Clientes</NavLink>
             <NavLink to="/usuarios" className={navItem} onClick={() => setOpen(false)}>Usuários</NavLink>
             <NavLink to="/vendas" className={navItem} onClick={() => setOpen(false)}>Vendas</NavLink>
-            <NavLink to="/dividas" className={navItem} onClick={() => setOpen(false)}>Dívidas</NavLink>
             <NavLink to="/relatorios-financeiros" className={navItem} onClick={() => setOpen(false)}>Relatórios</NavLink>
-            <NavLink to="/configuracoes" className={navItem} onClick={() => setOpen(false)}>Configurações</NavLink>
           </div>
         </div>
       </div>

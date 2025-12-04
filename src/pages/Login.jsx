@@ -32,8 +32,8 @@ export default function Login() {
           <div className="text-center space-y-6">
             {/* Logo nelson */}
             <img
-              src="/nelson.jpg"
-              alt="Nelson"
+              src="/logo.png"
+              alt="Logo"
               className="h-20 w-20 rounded-full object-cover mx-auto shadow-lg border border-white/30"
             />
             <div>
@@ -162,8 +162,8 @@ export default function Login() {
           <div className="mx-auto h-16 w-16 bg-blue-900 rounded-full flex items-center justify-center mb-4 overflow-hidden">
             {/* Logo nelson */}
             <img
-              src="/nelson.jpg"
-              alt="Nelson"
+              src="/logo.png"
+              alt="Logo"
               className="h-full w-full object-cover"
             />
           </div>

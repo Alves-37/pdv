@@ -1,5 +1,5 @@
 // Simple API client using fetch, with base URL and auth token
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://backend-production-3b13.up.railway.app';
 
 async function request(path, { method = 'GET', body, headers = {}, auth = true } = {}) {
   const token = auth ? localStorage.getItem('access_token') : null;
