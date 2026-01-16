@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react'
-import { api } from '../services/api'
+import { api, API_BASE_URL } from '../services/api'
 
 export default function ProductForm({ initial, onSubmit, onCancel, submitting }) {
+  const tenantTipoNegocio = (localStorage.getItem('tenant_tipo_negocio') || 'mercearia').toLowerCase()
+  const isRestaurante = tenantTipoNegocio === 'restaurante'
+
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState('')
+
   const [form, setForm] = useState({
     nome: '',
     codigo: '',
@@ -14,6 +20,7 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
     categoria_id: '',
     descricao: '',
     taxa_iva: '0',
+    ativo: true,
   })
   const [categorias, setCategorias] = useState([])
   const [categoriasErro, setCategoriasErro] = useState(null)
@@ -29,12 +36,27 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
         estoque_minimo: initial.estoque_minimo ?? '',
         unidade_medida: initial.unidade_medida ?? 'un',
         venda_por_peso: Boolean(initial.venda_por_peso),
-        categoria_id: initial.categoria_id ?? '',
+        categoria_id: (initial.categoria_id === null || typeof initial.categoria_id === 'undefined') ? '' : String(initial.categoria_id),
         descricao: initial.descricao ?? '',
         taxa_iva: (initial.taxa_iva ?? 0).toString(),
+        ativo: typeof initial.ativo === 'boolean' ? initial.ativo : true,
       })
+
+      if (initial?.imagem_path) {
+        const p = String(initial.imagem_path || '')
+        setImagePreview(p.startsWith('/media/') ? `${API_BASE_URL}${p}` : p)
+      }
     }
   }, [initial])
+
+  useEffect(() => {
+    if (!imageFile) return
+    const url = URL.createObjectURL(imageFile)
+    setImagePreview(url)
+    return () => {
+      try { URL.revokeObjectURL(url) } catch {}
+    }
+  }, [imageFile])
 
   // Carregar categorias
   useEffect(() => {
@@ -58,15 +80,18 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
     // Validações básicas
     if (!form.nome?.trim()) { alert('Nome é obrigatório'); return }
     if (!form.codigo?.trim()) { alert('Código é obrigatório'); return }
-    // Categoria obrigatória (sempre)
-    if (!String(form.categoria_id || '').trim()) { alert('Categoria é obrigatória'); return }
 
-    const unidade = form.venda_por_peso ? 'kg' : 'un'
+    // Categoria obrigatória apenas para mercearia
+    if (!isRestaurante && !String(form.categoria_id || '').trim()) { alert('Categoria é obrigatória'); return }
 
-    // Detectar se a categoria selecionada é "Serviços" (id/nome)
-    const catSelecionada = categorias.find((c) => String(c.id ?? c.uuid ?? '') === String(form.categoria_id ?? ''))
+    const unidade = isRestaurante ? 'un' : (form.venda_por_peso ? 'kg' : 'un')
+
+    // Detectar se a categoria selecionada é "Serviços" (id/nome) (apenas quando usamos categorias)
+    const catSelecionada = isRestaurante
+      ? null
+      : categorias.find((c) => String(c.id ?? c.uuid ?? '') === String(form.categoria_id ?? ''))
     const nomeCat = (catSelecionada?.nome || '').toLowerCase()
-    const isServicos = nomeCat === 'serviços' || nomeCat === 'servicos'
+    const isServicos = !isRestaurante && (nomeCat === 'serviços' || nomeCat === 'servicos')
 
     const payload = {
       ...form,
@@ -75,22 +100,24 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
       preco_custo: isServicos ? 0.0 : (form.preco_custo === '' ? 0.0 : Number(form.preco_custo)),
       estoque: isServicos ? 0.0 : (form.estoque === '' ? 0.0 : Number(form.estoque)),
       estoque_minimo: isServicos ? 0.0 : (form.estoque_minimo === '' ? 0.0 : Number(form.estoque_minimo)),
-      categoria_id: form.categoria_id === '' ? null : form.categoria_id,
+      categoria_id: (String(form.categoria_id || '').trim() === '' ? null : Number(form.categoria_id)),
       unidade_medida: unidade,
-      taxa_iva: Number(form.taxa_iva || 0),
+      venda_por_peso: isRestaurante ? false : Boolean(form.venda_por_peso),
+      taxa_iva: isRestaurante ? 0.0 : Number(form.taxa_iva || 0),
+      ativo: Boolean(form.ativo),
     }
-    onSubmit?.(payload)
+    onSubmit?.({ payload, imageFile })
   }
 
   // Detectar se a categoria atual é "Serviços" para controlar UI (desabilitar campos)
-  const catSelecionada = categorias.find((c) => String(c.id ?? c.uuid ?? '') === String(form.categoria_id ?? ''))
+  const catSelecionada = isRestaurante ? null : categorias.find((c) => String(c.id ?? c.uuid ?? '') === String(form.categoria_id ?? ''))
   const nomeCat = (catSelecionada?.nome || '').toLowerCase()
-  const isServicos = nomeCat === 'serviços' || nomeCat === 'servicos'
+  const isServicos = !isRestaurante && (nomeCat === 'serviços' || nomeCat === 'servicos')
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Linha 1: Código, Categoria, Nome */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+      <div className={`grid grid-cols-1 ${isRestaurante ? 'sm:grid-cols-3' : 'sm:grid-cols-4'} gap-3`}>
         <div className="sm:col-span-1">
           <label className="label">Código</label>
           <input className="input w-full" value={form.codigo} onChange={e => update('codigo', e.target.value)} placeholder="Ex.: 0001" />
@@ -98,7 +125,13 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
         <div className="sm:col-span-1">
           <label className="label">Categoria</label>
           {categoriasErro ? (
-            <input className="input w-full" value={form.categoria_id} onChange={e => update('categoria_id', e.target.value)} placeholder="Ex.: Mercearia" required />
+            <input
+              className="input w-full"
+              value={form.categoria_id}
+              onChange={e => update('categoria_id', e.target.value)}
+              placeholder={isRestaurante ? 'Ex.: Pratos' : 'Ex.: Mercearia'}
+              required={!isRestaurante}
+            />
           ) : (
             <select
               className="input w-full"
@@ -107,28 +140,29 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
                 const v = e.target.value
                 setForm(prev => {
                   const next = { ...prev, categoria_id: v }
-                  const catSel = categorias.find((c) => String(c.id ?? c.uuid ?? '') === String(v))
-                  const nome = (catSel?.nome || '').toLowerCase()
-                  const isServ = nome === 'serviços' || nome === 'servicos'
-                  if (isServ) {
-                    // Para serviços, limpar custo/estoque para alinhar com PDV3
-                    next.preco_custo = ''
-                    next.estoque = ''
-                    next.estoque_minimo = ''
+                  if (!isRestaurante) {
+                    const catSel = categorias.find((c) => String(c.id ?? c.uuid ?? '') === String(v))
+                    const nome = (catSel?.nome || '').toLowerCase()
+                    const isServ = nome === 'serviços' || nome === 'servicos'
+                    if (isServ) {
+                      next.preco_custo = ''
+                      next.estoque = ''
+                      next.estoque_minimo = ''
+                    }
                   }
                   return next
                 })
               }}
-              required
+              required={!isRestaurante}
             >
-              <option value="">Selecione uma categoria</option>
+              <option value="">{isRestaurante ? 'Sem categoria' : 'Selecione uma categoria'}</option>
               {categorias.map((c) => (
                 <option key={c.id || c.uuid || c.nome} value={c.id || c.uuid || ''}>{c.nome || c.descricao || c.id}</option>
               ))}
             </select>
           )}
         </div>
-        <div className="sm:col-span-2">
+        <div className={isRestaurante ? 'sm:col-span-2' : 'sm:col-span-2'}>
           <label className="label">Nome</label>
           <input className="input w-full" value={form.nome} onChange={e => update('nome', e.target.value)} placeholder="Ex.: Arroz Branco 1kg" required />
         </div>
@@ -140,8 +174,27 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
         <textarea className="input w-full" rows={3} value={form.descricao} onChange={e => update('descricao', e.target.value)} placeholder="Opcional: detalhes do produto" />
       </div>
 
+      <div>
+        <label className="label">Imagem (opcional)</label>
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="input w-full"
+          onChange={(e) => {
+            const f = e.target.files?.[0] || null
+            setImageFile(f)
+          }}
+          disabled={submitting}
+        />
+        {imagePreview && (
+          <div className="mt-2">
+            <img src={imagePreview} alt="Pré-visualização" className="h-24 w-24 object-cover rounded-md border" />
+          </div>
+        )}
+      </div>
+
       {/* Linha 3: Preço custo, Preço venda, IVA, Estoque, Estoque mínimo */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+      <div className={`grid grid-cols-1 ${isRestaurante ? 'sm:grid-cols-3' : 'sm:grid-cols-4'} gap-3`}>
         <div>
           <label className="label">Preço custo (MT)</label>
           <input
@@ -166,19 +219,21 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
             required
           />
         </div>
-        <div>
-          <label className="label">IVA (%)</label>
-          <input
-            type="number"
-            step="0.1"
-            min="0"
-            max="100"
-            className="input w-full"
-            value={form.taxa_iva}
-            onChange={e => update('taxa_iva', e.target.value)}
-            placeholder="Ex.: 16.5"
-          />
-        </div>
+        {!isRestaurante && (
+          <div>
+            <label className="label">IVA (%)</label>
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              max="100"
+              className="input w-full"
+              value={form.taxa_iva}
+              onChange={e => update('taxa_iva', e.target.value)}
+              placeholder="Ex.: 16.5"
+            />
+          </div>
+        )}
         <div>
           <label className="label">{form.venda_por_peso ? 'Estoque (KG)' : 'Estoque (Unidades)'}</label>
           <input
@@ -203,11 +258,19 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
         </div>
       </div>
 
-      {/* Linha final: Venda por peso */}
+      {!isRestaurante && (
+        <div>
+          <label className="inline-flex items-center gap-2">
+            <input type="checkbox" className="checkbox" checked={form.venda_por_peso} onChange={e => update('venda_por_peso', e.target.checked)} />
+            <span>Venda por peso</span>
+          </label>
+        </div>
+      )}
+
       <div>
         <label className="inline-flex items-center gap-2">
-          <input type="checkbox" className="checkbox" checked={form.venda_por_peso} onChange={e => update('venda_por_peso', e.target.checked)} />
-          <span>Venda por peso</span>
+          <input type="checkbox" className="checkbox" checked={Boolean(form.ativo)} onChange={e => update('ativo', e.target.checked)} />
+          <span>Ativo</span>
         </label>
       </div>
 

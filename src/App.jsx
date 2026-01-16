@@ -10,6 +10,7 @@ import Vendas from './pages/Vendas'
 import RelatoriosFinanceiros from './pages/RelatoriosFinanceiros'
 import Configuracoes from './pages/Configuracoes'
 import Dividas from './pages/Dividas'
+import SelecionarTipo from './pages/SelecionarTipo'
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route path="/dividas" element={<Dividas />} />
           <Route path="/relatorios-financeiros" element={<RelatoriosFinanceiros />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
+          <Route path="/selecionar-tipo" element={<SelecionarTipo />} />
 
           {/* Redirect raiz para dashboard */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

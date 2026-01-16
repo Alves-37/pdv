@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { api } from '../services/api'
+import { api, API_BASE_URL } from '../services/api'
 import Modal from '../components/Modal'
 import ProductForm from '../components/ProductForm'
 import ConfirmDialog from '../components/ConfirmDialog'
 
 export default function Produtos() {
+  const tenantTipoNegocio = (localStorage.getItem('tenant_tipo_negocio') || 'mercearia').toLowerCase()
+  const isRestaurante = tenantTipoNegocio === 'restaurante'
+
   const [q, setQ] = useState('')
   const [todos, setTodos] = useState([])
   const [loading, setLoading] = useState(false)
@@ -15,14 +18,16 @@ export default function Produtos() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [confirmProduct, setConfirmProduct] = useState(null)
   const [lowOnly, setLowOnly] = useState(false)
+  const [showInactive, setShowInactive] = useState(false)
 
   async function load(search) {
     setLoading(true)
     setError(null)
     try {
-      const data = await api.getProdutos(search)
+      const data = await api.getProdutos(search, { incluir_inativos: showInactive })
       const arr = Array.isArray(data) ? data : (data?.items || [])
-      setTodos(arr)
+      const finalArr = showInactive ? arr.filter(x => x?.ativo === false) : arr
+      setTodos(finalArr)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -30,10 +35,12 @@ export default function Produtos() {
     }
   }
 
-  useEffect(() => { load('') }, [])
+  useEffect(() => { load('') }, [showInactive])
 
   // Atualização em "tempo real" simples: polling e refresh ao voltar o foco
   useEffect(() => {
+    if (import.meta.env.DEV) return
+
     const intervalId = setInterval(() => {
       // Recarrega mantendo o termo atual da busca
       load(q)
@@ -70,6 +77,12 @@ export default function Produtos() {
     const estoque = Number(p.estoque ?? 0)
     const min = Number(p.estoque_minimo ?? 0)
     return min > 0 ? (estoque <= min) : (estoque <= 5)
+  }
+
+  const getProdutoImageUrl = (p) => {
+    const path = String(p?.imagem_path || '')
+    if (!path) return ''
+    return path.startsWith('/media/') ? `${API_BASE_URL}${path}` : path
   }
 
   const filtrados = useMemo(() => {
@@ -123,8 +136,12 @@ export default function Produtos() {
             onClick={async () => {
               try {
                 const token = localStorage.getItem('access_token')
-                const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/relatorios/produtos`, {
-                  headers: token ? { Authorization: `Bearer ${token}` } : {},
+                const tenantId = localStorage.getItem('tenant_id')
+                const res = await fetch(`${API_BASE_URL}/api/relatorios/produtos`, {
+                  headers: {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}),
+                  },
                 })
                 if (!res.ok) {
                   throw new Error(`HTTP ${res.status}`)
@@ -152,8 +169,12 @@ export default function Produtos() {
             onClick={async () => {
               try {
                 const token = localStorage.getItem('access_token')
-                const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/relatorios/produtos?baixo_estoque=true`, {
-                  headers: token ? { Authorization: `Bearer ${token}` } : {},
+                const tenantId = localStorage.getItem('tenant_id')
+                const res = await fetch(`${API_BASE_URL}/api/relatorios/produtos?baixo_estoque=true`, {
+                  headers: {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}),
+                  },
                 })
                 if (!res.ok) {
                   throw new Error(`HTTP ${res.status}`)
@@ -197,6 +218,19 @@ export default function Produtos() {
                 <span className={`block w-5 h-5 bg-white rounded-full shadow transform transition-transform ${lowOnly ? 'translate-x-4' : 'translate-x-1'}`} />
               </button>
             </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Inativos</span>
+              <button
+                type="button"
+                aria-pressed={showInactive}
+                onClick={() => setShowInactive(v => !v)}
+                className={`w-10 h-6 rounded-full transition-colors ${showInactive ? 'bg-indigo-500' : 'bg-gray-300'}`}
+                title="Mostrar apenas produtos inativos"
+              >
+                <span className={`block w-5 h-5 bg-white rounded-full shadow transform transition-transform ${showInactive ? 'translate-x-4' : 'translate-x-1'}`} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -228,14 +262,35 @@ export default function Produtos() {
             const min = Number(p.estoque_minimo ?? 0)
             const baixo = isBaixo(p)
             const margem = (p.preco_venda && p.preco_custo) ? ((p.preco_venda - p.preco_custo) / (p.preco_venda || 1) * 100) : null
+            const imgUrl = isRestaurante ? getProdutoImageUrl(p) : ''
+            const isInactive = p.ativo === false
             return (
-              <div key={p.id || p.uuid || p.codigo} className="card card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40">
+              <div key={p.id || p.uuid || p.codigo} className={`card card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 ${isInactive ? 'opacity-70' : ''}`}>
+                {isRestaurante && (
+                  <div className="-mx-4 -mt-4 mb-3">
+                    {imgUrl ? (
+                      <img
+                        src={imgUrl}
+                        alt={p.nome || 'Produto'}
+                        className="w-full h-40 object-cover rounded-t-xl border-b"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-40 bg-gray-100 rounded-t-xl border-b flex items-center justify-center text-gray-400">
+                        <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate" title={p.nome}>{p.nome}</h3>
                     <div className="text-xs sm:text-sm text-gray-500">Código: {p.codigo}</div>
                     <div className="mt-1 flex items-center gap-2 flex-wrap">
                       <span className={`text-[10px] sm:text-xs px-2 py-0.5 rounded-full ${baixo ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>Estoque: {estoque}{min ? `/${min}` : ''}</span>
+                      {isInactive && (
+                        <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-700">Inativo</span>
+                      )}
                       {typeof p.venda_por_peso !== 'undefined' && (
                         <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
                           {p.venda_por_peso ? 'Peso' : (p.unidade_medida || 'un')}
@@ -258,6 +313,26 @@ export default function Produtos() {
                       <div className="text-[11px] text-purple-600 mt-0.5">Margem: {margem.toFixed(1)}%</div>
                     )}
                     <div className="mt-2 flex items-center justify-end gap-2">
+                      <button
+                        className={`inline-flex items-center justify-center p-2 rounded-md border ${isInactive ? 'border-indigo-300 text-indigo-700 hover:bg-indigo-50' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                        title={isInactive ? 'Ativar' : 'Desativar'}
+                        onClick={async () => {
+                          const id = p.id || p.uuid
+                          if (!id) return
+                          try {
+                            setSubmitting(true)
+                            await api.updateProduto(id, { ativo: !isInactive })
+                            await load(q)
+                          } catch (e) {
+                            alert(e.message || 'Falha ao atualizar status do produto')
+                          } finally {
+                            setSubmitting(false)
+                          }
+                        }}
+                        disabled={submitting}
+                      >
+                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 2v10l6 3"/></svg>
+                      </button>
                       <button
                         className="inline-flex items-center justify-center p-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
                         title="Editar"
@@ -294,14 +369,21 @@ export default function Produtos() {
           initial={editing}
           submitting={submitting}
           onCancel={() => { if (!submitting) { setModalOpen(false); setEditing(null) } }}
-          onSubmit={async (payload) => {
+          onSubmit={async ({ payload, imageFile }) => {
             try {
               setSubmitting(true)
+              let saved = null
               if (editing) {
                 const id = editing.id || editing.uuid
-                await api.updateProduto(id, payload)
+                saved = await api.updateProduto(id, payload)
+                if (imageFile) {
+                  await api.uploadProdutoImagem(id, imageFile)
+                }
               } else {
-                await api.createProduto(payload)
+                saved = await api.createProduto(payload)
+                if (imageFile && saved?.id) {
+                  await api.uploadProdutoImagem(saved.id, imageFile)
+                }
               }
               await load('')
               setModalOpen(false)
@@ -337,7 +419,7 @@ export default function Produtos() {
           try {
             setSubmitting(true)
             await api.deleteProduto(id)
-            await load('')
+            await load(q)
             setConfirmOpen(false)
             setConfirmProduct(null)
           } catch (e) {

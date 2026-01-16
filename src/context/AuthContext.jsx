@@ -64,6 +64,7 @@ export function AuthProvider({ children }) {
   function logout() {
     setToken(null)
     setUser(null)
+    localStorage.removeItem('tenant_id')
   }
 
   const value = useMemo(

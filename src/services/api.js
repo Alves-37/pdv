@@ -1,15 +1,28 @@
 // Simple API client using fetch, with base URL and auth token
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://backend-production-3b13.up.railway.app';
+const DEFAULT_DEV_API_BASE_URL = 'http://127.0.0.1:8000'
+const DEFAULT_PROD_API_BASE_URL = 'https://backend-production-3b13.up.railway.app'
+const API_BASE_URL = import.meta.env.DEV
+  ? (import.meta.env.VITE_API_BASE_URL_DEV || DEFAULT_DEV_API_BASE_URL)
+  : (import.meta.env.VITE_API_BASE_URL || DEFAULT_PROD_API_BASE_URL);
+
+console.log('[api] loaded', { baseUrl: API_BASE_URL, env: import.meta.env.MODE })
 
 async function request(path, { method = 'GET', body, headers = {}, auth = true } = {}) {
   const token = auth ? localStorage.getItem('access_token') : null;
+  const tenantId = localStorage.getItem('tenant_id');
+  const finalHeaders = {
+    // Content-Type pode ser sobrescrito (ex.: form-urlencoded no login)
+    'Content-Type': headers['Content-Type'] || 'application/json',
+    ...(auth && token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}),
+    ...headers,
+  }
+
+  console.log('[api] request', { baseUrl: API_BASE_URL, path, method, tenantId, headers: finalHeaders })
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method,
     headers: {
-      // Content-Type pode ser sobrescrito (ex.: form-urlencoded no login)
-      'Content-Type': headers['Content-Type'] || 'application/json',
-      ...(auth && token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
+      ...finalHeaders,
     },
     body: body && headers['Content-Type'] === 'application/x-www-form-urlencoded'
       ? body
@@ -20,11 +33,63 @@ async function request(path, { method = 'GET', body, headers = {}, auth = true }
     let message = `HTTP ${res.status}`;
     try {
       const data = await res.json();
-      message = data?.detail || data?.message || message;
+      const detail = data?.detail ?? data?.message
+      if (typeof detail === 'string') {
+        message = detail
+      } else if (Array.isArray(detail)) {
+        message = detail
+          .map((d) => {
+            if (typeof d === 'string') return d
+            const loc = Array.isArray(d?.loc) ? d.loc.join('.') : ''
+            const msg = d?.msg || ''
+            return loc ? `${loc}: ${msg}` : (msg || JSON.stringify(d))
+          })
+          .join(' | ')
+      } else if (detail && typeof detail === 'object') {
+        message = JSON.stringify(detail)
+      } else {
+        message = message
+      }
+      console.error('[api] error response', { path, status: res.status, data })
     } catch {}
     throw new Error(message);
   }
   // try parse json else return null
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+async function uploadFile(path, file, { auth = true } = {}) {
+  const token = auth ? localStorage.getItem('access_token') : null;
+  const tenantId = localStorage.getItem('tenant_id');
+
+  const form = new FormData();
+  form.append('file', file);
+
+  const headers = {
+    ...(auth && token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}),
+  }
+
+  console.log('[api] upload', { baseUrl: API_BASE_URL, path, tenantId, filename: file?.name })
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'POST',
+    headers,
+    body: form,
+  })
+
+  if (!res.ok) {
+    let message = `HTTP ${res.status}`;
+    try {
+      const data = await res.json();
+      message = data?.detail || data?.message || message;
+    } catch {}
+    throw new Error(message);
+  }
+
   try {
     return await res.json();
   } catch {
@@ -40,11 +105,35 @@ export const api = {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     auth: false,
   }),
+
+  // Tenants
+  getTenants: () => request('/api/tenants/'),
+  createTenant: (nome, tipo_negocio = 'mercearia', ativo = true) => request('/api/tenants/', { method: 'POST', body: { nome, tipo_negocio, ativo } }),
+  updateTenant: (id, payload) => request(`/api/tenants/${id}`, { method: 'PUT', body: payload }),
+  deleteTenant: (id) => request(`/api/tenants/${id}`, { method: 'DELETE' }),
+  setTenantId: (tenantId) => {
+    if (!tenantId) {
+      localStorage.removeItem('tenant_id');
+      return;
+    }
+    localStorage.setItem('tenant_id', tenantId);
+  },
+
+  // Métricas (com tenant header)
+  getMetricasVendasDia: (data) => request(`/api/metricas/vendas-dia?data=${encodeURIComponent(data)}`),
+  getMetricasVendasMes: (anoMes) => request(`/api/metricas/vendas-mes?ano_mes=${encodeURIComponent(anoMes)}`),
   // Produtos
-  getProdutos: (q) => request(`/api/produtos/${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  getProdutos: (q, { incluir_inativos = false } = {}) => {
+    const qs = new URLSearchParams()
+    if (q) qs.set('q', q)
+    if (incluir_inativos) qs.set('incluir_inativos', 'true')
+    const suffix = qs.toString() ? `?${qs.toString()}` : ''
+    return request(`/api/produtos/${suffix}`)
+  },
   createProduto: (payload) => request('/api/produtos/', { method: 'POST', body: payload }),
   updateProduto: (id, payload) => request(`/api/produtos/${id}`, { method: 'PUT', body: payload }),
   deleteProduto: (id) => request(`/api/produtos/${id}`, { method: 'DELETE' }),
+  uploadProdutoImagem: (id, file) => uploadFile(`/api/produtos/${id}/imagem`, file),
   // Categorias
   getCategorias: () => request('/api/categorias/'),
   // Usuários
@@ -125,5 +214,7 @@ export const api = {
   // Admin
   resetDadosOnline: () => request('/api/admin/reset-dados', { method: 'POST' }),
 };
+
+export { API_BASE_URL };
 
 export default api;

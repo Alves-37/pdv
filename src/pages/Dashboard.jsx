@@ -37,14 +37,13 @@ export default function Dashboard() {
       setLoading(true)
       setError(null)
       try {
-        const base = import.meta.env.VITE_API_BASE_URL
         const hoje = new Date()
         const ymdHoje = toYMD(hoje)
         const anoMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`
         // 1) Buscar vendas_dia e vendas_mes do servidor com parâmetros explícitos
         const [dia, mes] = await Promise.all([
-          fetch(`${base}/api/metricas/vendas-dia?data=${ymdHoje}`).then(r => r.ok ? r.json() : null).catch(() => null),
-          fetch(`${base}/api/metricas/vendas-mes?ano_mes=${anoMes}`).then(r => r.ok ? r.json() : null).catch(() => null),
+          api.getMetricasVendasDia(ymdHoje).catch(() => null),
+          api.getMetricasVendasMes(anoMes).catch(() => null),
         ])
 
         // 2) Tentar obter métricas de estoque direto do backend (alinhado com PDV3)
@@ -168,16 +167,21 @@ export default function Dashboard() {
   useEffect(() => {
     let cleanup = loadMetrics()
     // Polling leve (20s) + refresh ao focar/visibilidade
-    const intervalId = setInterval(() => { loadMetrics() }, 20000)
+    // Em DEV, o StrictMode e hot reload já disparam re-mounts; evitamos polling para não sobrecarregar.
+    const intervalId = import.meta.env.DEV ? null : setInterval(() => { loadMetrics() }, 20000)
     const onFocus = () => loadMetrics()
     const onVisibility = () => { if (document.visibilityState === 'visible') loadMetrics() }
-    window.addEventListener('focus', onFocus)
-    document.addEventListener('visibilitychange', onVisibility)
+    if (!import.meta.env.DEV) {
+      window.addEventListener('focus', onFocus)
+      document.addEventListener('visibilitychange', onVisibility)
+    }
     return () => {
       if (typeof cleanup === 'function') cleanup()
-      clearInterval(intervalId)
-      window.removeEventListener('focus', onFocus)
-      document.removeEventListener('visibilitychange', onVisibility)
+      if (intervalId) clearInterval(intervalId)
+      if (!import.meta.env.DEV) {
+        window.removeEventListener('focus', onFocus)
+        document.removeEventListener('visibilitychange', onVisibility)
+      }
     }
   }, [loadMetrics])
 

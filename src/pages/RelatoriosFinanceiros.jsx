@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { api } from '../services/api'
+import { api, API_BASE_URL } from '../services/api'
 
 export default function RelatoriosFinanceiros() {
   const today = useMemo(() => new Date(), [])
@@ -72,7 +72,10 @@ export default function RelatoriosFinanceiros() {
     }
   }
 
-  useEffect(() => { buscar() }, [])
+  useEffect(() => {
+    // Em DEV, evitar chamada extra em cenários de remount/hot reload
+    buscar()
+  }, [])
 
   const resumo = useMemo(() => {
     let faturamento = 0
@@ -151,14 +154,17 @@ export default function RelatoriosFinanceiros() {
             title="Baixar relatório de vendas em PDF"
             onClick={async () => {
               try {
-                const base = import.meta.env.VITE_API_BASE_URL
                 const token = localStorage.getItem('access_token')
+                const tenantId = localStorage.getItem('tenant_id')
                 const qs = new URLSearchParams()
                 if (inicio) qs.set('data_inicio', inicio)
                 if (fim) qs.set('data_fim', fim)
                 if (usuarioId) qs.set('usuario_id', usuarioId)
-                const res = await fetch(`${base}/api/relatorios/vendas?${qs.toString()}`, {
-                  headers: token ? { Authorization: `Bearer ${token}` } : {},
+                const res = await fetch(`${API_BASE_URL}/api/relatorios/vendas?${qs.toString()}`, {
+                  headers: {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}),
+                  },
                 })
                 if (!res.ok) throw new Error(`HTTP ${res.status}`)
                 const blob = await res.blob()
@@ -183,14 +189,17 @@ export default function RelatoriosFinanceiros() {
             title="Baixar relatório financeiro em PDF"
             onClick={async () => {
               try {
-                const base = import.meta.env.VITE_API_BASE_URL
                 const token = localStorage.getItem('access_token')
+                const tenantId = localStorage.getItem('tenant_id')
                 const qs = new URLSearchParams()
                 if (inicio) qs.set('data_inicio', inicio)
                 if (fim) qs.set('data_fim', fim)
                 if (usuarioId) qs.set('usuario_id', usuarioId)
-                const res = await fetch(`${base}/api/relatorios/financeiro?${qs.toString()}`, {
-                  headers: token ? { Authorization: `Bearer ${token}` } : {},
+                const res = await fetch(`${API_BASE_URL}/api/relatorios/financeiro?${qs.toString()}`, {
+                  headers: {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}),
+                  },
                 })
                 if (!res.ok) throw new Error(`HTTP ${res.status}`)
                 const blob = await res.blob()
@@ -219,14 +228,17 @@ export default function RelatoriosFinanceiros() {
                   alert('Defina uma data inicial para determinar o mês.');
                   return;
                 }
-                const base = import.meta.env.VITE_API_BASE_URL
                 const token = localStorage.getItem('access_token')
+                const tenantId = localStorage.getItem('tenant_id')
                 const d = new Date(inicio)
                 const ano = d.getFullYear()
                 const mes = d.getMonth() + 1
                 const qs = new URLSearchParams({ ano: String(ano), mes: String(mes) })
-                const res = await fetch(`${base}/api/relatorios/faturas-mensal?${qs.toString()}`, {
-                  headers: token ? { Authorization: `Bearer ${token}` } : {},
+                const res = await fetch(`${API_BASE_URL}/api/relatorios/faturas-mensal?${qs.toString()}`, {
+                  headers: {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}),
+                  },
                 })
                 if (!res.ok) throw new Error(`HTTP ${res.status}`)
                 const blob = await res.blob()
