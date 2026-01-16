@@ -213,6 +213,7 @@ export const api = {
 
   // Admin
   resetDadosOnline: () => request('/api/admin/reset-dados', { method: 'POST' }),
+  resetDadosTenant: (tenantId) => request(`/api/admin/tenants/${tenantId}/reset-dados`, { method: 'POST' }),
 };
 
 export { API_BASE_URL };
