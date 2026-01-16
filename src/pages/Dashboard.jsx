@@ -34,6 +34,7 @@ export default function Dashboard() {
 
   const loadMetrics = useCallback(async () => {
     let mounted = true
+      const tenantId = localStorage.getItem('tenant_id')
       setLoading(true)
       setError(null)
       try {
@@ -183,6 +184,25 @@ export default function Dashboard() {
         document.removeEventListener('visibilitychange', onVisibility)
       }
     }
+  }, [loadMetrics])
+
+  useEffect(() => {
+    const onTenantChanged = () => {
+      setMetricas({
+        vendas_dia: null,
+        vendas_mes: null,
+        lucro_dia: null,
+        lucro_mes: null,
+        valor_estoque: null,
+        valor_potencial: null,
+        lucro_potencial: null,
+        baixo_estoque: null,
+      })
+      loadMetrics()
+    }
+
+    window.addEventListener('tenant_changed', onTenantChanged)
+    return () => window.removeEventListener('tenant_changed', onTenantChanged)
   }, [loadMetrics])
 
   const StatCard = ({ title, value, color = 'primary', icon }) => {

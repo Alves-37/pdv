@@ -1,24 +1,32 @@
 // Simple API client using fetch, with base URL and auth token
 const DEFAULT_DEV_API_BASE_URL = 'http://127.0.0.1:8000'
 const DEFAULT_PROD_API_BASE_URL = 'https://vuchadabackend-production.up.railway.app'
+const DEFAULT_TENANT_ID = '11111111-1111-1111-1111-111111111111'
 const API_BASE_URL = import.meta.env.DEV
   ? (import.meta.env.VITE_API_BASE_URL_DEV || DEFAULT_DEV_API_BASE_URL)
   : (import.meta.env.VITE_API_BASE_URL || DEFAULT_PROD_API_BASE_URL);
 
 console.log('[api] loaded', { baseUrl: API_BASE_URL, env: import.meta.env.MODE })
 
+try {
+  const tid = localStorage.getItem('tenant_id')
+  if (tid && String(tid) === DEFAULT_TENANT_ID) {
+    localStorage.removeItem('tenant_id')
+  }
+} catch {}
+
 async function request(path, { method = 'GET', body, headers = {}, auth = true } = {}) {
   const token = auth ? localStorage.getItem('access_token') : null;
   const tenantId = localStorage.getItem('tenant_id');
+  const includeTenantHeader = !String(path).startsWith('/auth/')
   const finalHeaders = {
     // Content-Type pode ser sobrescrito (ex.: form-urlencoded no login)
     'Content-Type': headers['Content-Type'] || 'application/json',
     ...(auth && token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}),
+    ...(includeTenantHeader && tenantId && String(tenantId) !== DEFAULT_TENANT_ID ? { 'X-Tenant-Id': tenantId } : {}),
     ...headers,
   }
 
-  console.log('[api] request', { baseUrl: API_BASE_URL, path, method, tenantId, headers: finalHeaders })
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method,
     headers: {
@@ -56,7 +64,8 @@ async function request(path, { method = 'GET', body, headers = {}, auth = true }
   }
   // try parse json else return null
   try {
-    return await res.json();
+    const data = await res.json();
+    return data;
   } catch {
     return null;
   }
@@ -71,10 +80,8 @@ async function uploadFile(path, file, { auth = true } = {}) {
 
   const headers = {
     ...(auth && token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}),
+    ...(tenantId && String(tenantId) !== DEFAULT_TENANT_ID ? { 'X-Tenant-Id': tenantId } : {}),
   }
-
-  console.log('[api] upload', { baseUrl: API_BASE_URL, path, tenantId, filename: file?.name })
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
     headers,
@@ -112,11 +119,13 @@ export const api = {
   updateTenant: (id, payload) => request(`/api/tenants/${id}`, { method: 'PUT', body: payload }),
   deleteTenant: (id) => request(`/api/tenants/${id}`, { method: 'DELETE' }),
   setTenantId: (tenantId) => {
-    if (!tenantId) {
+    if (!tenantId || String(tenantId) === DEFAULT_TENANT_ID) {
       localStorage.removeItem('tenant_id');
+      try { window.dispatchEvent(new CustomEvent('tenant_changed', { detail: { tenantId: null } })) } catch {}
       return;
     }
     localStorage.setItem('tenant_id', tenantId);
+    try { window.dispatchEvent(new CustomEvent('tenant_changed', { detail: { tenantId } })) } catch {}
   },
 
   // Métricas (com tenant header)

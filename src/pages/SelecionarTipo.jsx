@@ -6,6 +6,7 @@ import ConfirmDialog from '../components/ConfirmDialog'
 
 export default function SelecionarTipo() {
   const navigate = useNavigate()
+  const DEFAULT_TENANT_ID = '11111111-1111-1111-1111-111111111111'
   const [tenants, setTenants] = useState([])
   const [selectedTenantId, setSelectedTenantId] = useState(() => localStorage.getItem('tenant_id') || '')
   const [loadingTenants, setLoadingTenants] = useState(true)
@@ -44,19 +45,28 @@ export default function SelecionarTipo() {
 
         console.debug('[tenant] loaded tenants', t)
 
-        // Determinar tenant ativo (se não houver selecionado ainda, usar o primeiro)
-        const firstId = Array.isArray(t) && t.length ? t[0].id : ''
-        const activeTenantId = selectedTenantId || firstId
-        if (activeTenantId) {
-          const activeObj = (Array.isArray(t) ? t : []).find(x => String(x?.id) === String(activeTenantId))
-          localStorage.setItem('tenant_tipo_negocio', activeObj?.tipo_negocio || 'mercearia')
+        // Determinar tenant ativo (prioriza o localStorage atual para evitar sobrescrever seleção recente)
+        const arr = (Array.isArray(t) ? t : []).filter(x => String(x?.id) !== DEFAULT_TENANT_ID)
+        const storedTenantId = localStorage.getItem('tenant_id') || ''
+        const desiredTenantId = storedTenantId || selectedTenantId || ''
+        const desiredObj = desiredTenantId
+          ? arr.find(x => String(x?.id) === String(desiredTenantId))
+          : null
+
+        const fallbackObj = arr.find(x => x?.ativo) || arr[0] || null
+        const finalObj = (desiredObj && desiredObj.ativo !== false) ? desiredObj : fallbackObj
+        const finalTenantId = finalObj?.id ? String(finalObj.id) : ''
+
+        if (finalTenantId) {
+          localStorage.setItem('tenant_tipo_negocio', finalObj?.tipo_negocio || 'mercearia')
         }
 
-        // Se ainda não tiver tenant selecionado, escolher o primeiro
-        if (activeTenantId && activeTenantId !== selectedTenantId) {
-          setSelectedTenantId(activeTenantId)
-          api.setTenantId(activeTenantId)
-          console.debug('[tenant] auto-selected tenant', activeTenantId)
+        if (finalTenantId && String(selectedTenantId) !== String(finalTenantId)) {
+          setSelectedTenantId(finalTenantId)
+        }
+        if (finalTenantId && String(storedTenantId) !== String(finalTenantId)) {
+          api.setTenantId(finalTenantId)
+          console.debug('[tenant] auto-selected tenant', finalTenantId)
         }
       } catch (e) {
         if (mounted) setError(e.message)
@@ -104,7 +114,7 @@ export default function SelecionarTipo() {
       const arr = await refreshTenants()
 
       if (String(t.id) === String(selectedTenantId) && t.ativo) {
-        const firstActive = (arr || []).find(x => x?.ativo)
+        const firstActive = (arr || []).find(x => x?.ativo && String(x?.id) !== DEFAULT_TENANT_ID)
         if (firstActive?.id) {
           await onSelectTenant(firstActive.id)
         } else {
@@ -159,6 +169,7 @@ export default function SelecionarTipo() {
 
   async function onSelectTenant(id) {
     if (!id || id === selectedTenantId) return
+    if (String(id) === DEFAULT_TENANT_ID) return
     console.debug('[tenant] selecting tenant', { from: selectedTenantId, to: id })
     setSelectingTenantId(id)
     setSelectedTenantId(id)
@@ -292,7 +303,9 @@ export default function SelecionarTipo() {
           </p>
         )}
         <div className="space-y-3">
-          {(showInactiveTenants ? tenants.filter(x => x?.ativo === false) : tenants.filter(x => x?.ativo)).map(t => {
+          {(showInactiveTenants ? tenants.filter(x => x?.ativo === false) : tenants.filter(x => x?.ativo))
+            .filter(x => String(x?.id) !== DEFAULT_TENANT_ID)
+            .map(t => {
             const isSelected = t.id === selectedTenantId
             return (
               <div
@@ -522,7 +535,7 @@ export default function SelecionarTipo() {
             const arr = await refreshTenants()
 
             if (removeTenant.id === selectedTenantId) {
-              const firstActive = (arr || []).find(x => x?.ativo)
+              const firstActive = (arr || []).find(x => x?.ativo && String(x?.id) !== DEFAULT_TENANT_ID)
               if (firstActive?.id) {
                 await onSelectTenant(firstActive.id)
               } else {
