@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import api from '../services/api'
 
 export default function Dashboard() {
@@ -14,6 +14,8 @@ export default function Dashboard() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  const loadSeqRef = useRef(0)
 
   const fmtMT = (v) => {
     if (v === null || v === undefined) return '—'
@@ -34,9 +36,10 @@ export default function Dashboard() {
 
   const loadMetrics = useCallback(async () => {
     let mounted = true
-      const tenantId = localStorage.getItem('tenant_id')
-      setLoading(true)
-      setError(null)
+    const seq = ++loadSeqRef.current
+    const tenantId = localStorage.getItem('tenant_id')
+    setLoading(true)
+    setError(null)
       try {
         const hoje = new Date()
         const ymdHoje = toYMD(hoje)
@@ -146,21 +149,28 @@ export default function Dashboard() {
           } catch { /* leave null */ }
         } catch { /* mantém null */ }
 
-        if (mounted) setMetricas(m => ({
-          ...m,
-          vendas_dia: dia?.total ?? m.vendas_dia,
-          vendas_mes: mes?.total ?? m.vendas_mes,
-          valor_estoque: valorEstoque,
-          valor_potencial: valorPotencial,
-          lucro_potencial: (valorPotencial != null && valorEstoque != null) ? (valorPotencial - valorEstoque) : null,
-          baixo_estoque: baixoEstoqueCount,
-          lucro_dia: lucroDia,
-          lucro_mes: lucroMes,
-        }))
+        const stillLatest = () => (
+          mounted &&
+          seq === loadSeqRef.current &&
+          localStorage.getItem('tenant_id') === tenantId
+        )
+
+        if (stillLatest()) {
+          setMetricas({
+            vendas_dia: dia?.total ?? null,
+            vendas_mes: mes?.total ?? null,
+            lucro_dia: lucroDia,
+            lucro_mes: lucroMes,
+            valor_estoque: valorEstoque,
+            valor_potencial: valorPotencial,
+            lucro_potencial: (valorPotencial != null && valorEstoque != null) ? (valorPotencial - valorEstoque) : null,
+            baixo_estoque: baixoEstoqueCount,
+          })
+        }
       } catch (e) {
-        if (mounted) setError(e.message)
+        if (mounted && seq === loadSeqRef.current) setError(e.message)
       } finally {
-        if (mounted) setLoading(false)
+        if (mounted && seq === loadSeqRef.current) setLoading(false)
       }
     return () => { mounted = false }
   }, [])
