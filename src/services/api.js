@@ -1,6 +1,6 @@
 // Simple API client using fetch, with base URL and auth token
 const DEFAULT_DEV_API_BASE_URL = 'http://127.0.0.1:8000'
-const DEFAULT_PROD_API_BASE_URL = 'https://backend-production-3b13.up.railway.app'
+const DEFAULT_PROD_API_BASE_URL = 'https://vuchadabackend-production.up.railway.app'
 const API_BASE_URL = import.meta.env.DEV
   ? (import.meta.env.VITE_API_BASE_URL_DEV || DEFAULT_DEV_API_BASE_URL)
   : (import.meta.env.VITE_API_BASE_URL || DEFAULT_PROD_API_BASE_URL);
