@@ -44,7 +44,13 @@ export default function ProductForm({ initial, onSubmit, onCancel, submitting })
 
       if (initial?.imagem_path) {
         const p = String(initial.imagem_path || '')
-        setImagePreview(p.startsWith('/media/') ? `${API_BASE_URL}${p}` : p)
+        if (p.startsWith('/media/')) {
+          const v = initial?.updated_at ? encodeURIComponent(String(initial.updated_at)) : String(Date.now())
+          const sep = p.includes('?') ? '&' : '?'
+          setImagePreview(`${API_BASE_URL}${p}${sep}v=${v}`)
+        } else {
+          setImagePreview(p)
+        }
       }
     }
   }, [initial])

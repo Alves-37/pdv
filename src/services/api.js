@@ -93,6 +93,9 @@ async function uploadFile(path, file, { auth = true } = {}) {
     try {
       const data = await res.json();
       message = data?.detail || data?.message || message;
+      try {
+        console.error('[api] upload error response', { path, status: res.status, data })
+      } catch {}
     } catch {}
     throw new Error(message);
   }

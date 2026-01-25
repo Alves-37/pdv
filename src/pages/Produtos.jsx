@@ -82,7 +82,12 @@ export default function Produtos() {
   const getProdutoImageUrl = (p) => {
     const path = String(p?.imagem_path || '')
     if (!path) return ''
-    return path.startsWith('/media/') ? `${API_BASE_URL}${path}` : path
+    if (path.startsWith('/media/')) {
+      const v = p?.updated_at ? encodeURIComponent(String(p.updated_at)) : String(Date.now())
+      const sep = path.includes('?') ? '&' : '?'
+      return `${API_BASE_URL}${path}${sep}v=${v}`
+    }
+    return path
   }
 
   const filtrados = useMemo(() => {
@@ -377,12 +382,26 @@ export default function Produtos() {
                 const id = editing.id || editing.uuid
                 saved = await api.updateProduto(id, payload)
                 if (imageFile) {
-                  await api.uploadProdutoImagem(id, imageFile)
+                  try {
+                    console.debug('[produtos] uploading image', { id })
+                    await api.uploadProdutoImagem(id, imageFile)
+                    console.debug('[produtos] upload ok', { id })
+                  } catch (e) {
+                    console.error('[produtos] upload failed', { id, error: e })
+                    alert(e?.message || 'Falha ao enviar imagem do produto')
+                  }
                 }
               } else {
                 saved = await api.createProduto(payload)
                 if (imageFile && saved?.id) {
-                  await api.uploadProdutoImagem(saved.id, imageFile)
+                  try {
+                    console.debug('[produtos] uploading image', { id: saved.id })
+                    await api.uploadProdutoImagem(saved.id, imageFile)
+                    console.debug('[produtos] upload ok', { id: saved.id })
+                  } catch (e) {
+                    console.error('[produtos] upload failed', { id: saved?.id, error: e })
+                    alert(e?.message || 'Falha ao enviar imagem do produto')
+                  }
                 }
               }
               await load('')
