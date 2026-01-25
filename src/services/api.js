@@ -117,7 +117,7 @@ export const api = {
   }),
 
   // Tenants
-  getTenants: () => request('/api/tenants/'),
+  getTenants: () => request('/api/tenants/?incluir_system=true'),
   createTenant: (nome, tipo_negocio = 'mercearia', ativo = true) => request('/api/tenants/', { method: 'POST', body: { nome, tipo_negocio, ativo } }),
   updateTenant: (id, payload) => request(`/api/tenants/${id}`, { method: 'PUT', body: payload }),
   deleteTenant: (id) => request(`/api/tenants/${id}`, { method: 'DELETE' }),
