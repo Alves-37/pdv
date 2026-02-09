@@ -3,6 +3,9 @@ import { api } from '../services/api'
 import Modal from '../components/Modal'
 
 export default function Vendas() {
+  const tenantTipoNegocio = (localStorage.getItem('tenant_tipo_negocio') || 'mercearia').toLowerCase()
+  const isRestaurante = tenantTipoNegocio === 'restaurante'
+
   const [q, setQ] = useState('')
   const [todos, setTodos] = useState([])
   const [loading, setLoading] = useState(false)
@@ -30,6 +33,9 @@ export default function Vendas() {
     setError(null)
     try {
       let data
+      if (isRestaurante) {
+        data = await api.getPedidos({ status: 'pago', limit: 300 })
+      } else
       if (period === 'today') {
         const today = new Date()
         const ymd = toYMD(today)
@@ -57,7 +63,9 @@ export default function Vendas() {
       if (mounted) setError(e.message)
       try {
         let fallback
-        if (usuarioId) {
+        if (isRestaurante) {
+          fallback = await api.getPedidos({ status: 'pago', limit: 300 })
+        } else if (usuarioId) {
           const data_inicio = '1970-01-01'
           const data_fim = toYMD(new Date())
           fallback = await api.getVendasPeriodo(data_inicio, data_fim, usuarioId)
@@ -73,7 +81,7 @@ export default function Vendas() {
       if (mounted) setLoading(false)
     }
     return () => { mounted = false }
-  }, [period, usuarioId])
+  }, [isRestaurante, period, usuarioId])
 
   useEffect(() => {
     let cleanup = loadData()
@@ -92,6 +100,7 @@ export default function Vendas() {
 
   // Carregar produtos uma vez para mapear nomes no detalhe (opcional)
   useEffect(() => {
+    if (isRestaurante) return
     let mounted = true
     async function loadProducts() {
       try {
@@ -107,10 +116,11 @@ export default function Vendas() {
     }
     loadProducts()
     return () => { mounted = false }
-  }, [])
+  }, [isRestaurante])
 
   // Carregar usuários (vendedores) para o filtro
   useEffect(() => {
+    if (isRestaurante) return
     let mounted = true
     async function loadUsers() {
       try {
@@ -121,7 +131,7 @@ export default function Vendas() {
     }
     loadUsers()
     return () => { mounted = false }
-  }, [])
+  }, [isRestaurante])
 
   // Debounce da busca
   const [debouncedQ, setDebouncedQ] = useState('')
@@ -140,6 +150,9 @@ export default function Vendas() {
 
   // Calcula total a partir dos itens quando possível (subtotais - desconto)
   const calcTotal = (venda) => {
+    if (isRestaurante) {
+      return Number(venda?.total ?? 0)
+    }
     try {
       const itens = Array.isArray(venda?.itens) ? venda.itens : []
       if (itens.length === 0) {
@@ -180,10 +193,12 @@ export default function Vendas() {
   const filtrados = useMemo(() => {
     if (!debouncedQ) return todos
     return todos.filter(v => {
-      const numero = String(v.numero || v.id || '').toLowerCase()
+      const numero = String(v.numero || v.pedido_id || v.id || v.pedido_uuid || '').toLowerCase()
       const cliente = (v.cliente_nome || v.cliente || '').toLowerCase()
       const usuario = (v.usuario_nome || v.usuario || '').toLowerCase()
+      const mesa = String(v.mesa_id ?? '').toLowerCase()
       return numero.includes(debouncedQ) || cliente.includes(debouncedQ) || usuario.includes(debouncedQ)
+        || mesa.includes(debouncedQ)
     })
   }, [todos, debouncedQ])
 
@@ -198,21 +213,23 @@ export default function Vendas() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold mr-2">Vendas</h1>
-          <div className="flex items-center gap-2">
-            <button
-              className={period === 'today' ? 'btn-primary' : 'btn-outline'}
-              onClick={() => setPeriod('today')}
-            >Hoje</button>
-            <button
-              className={period === 'month' ? 'btn-primary' : 'btn-outline'}
-              onClick={() => setPeriod('month')}
-            >Mês</button>
-            <button
-              className={period === 'all' ? 'btn-primary' : 'btn-outline'}
-              onClick={() => setPeriod('all')}
-            >Todas</button>
-          </div>
+          <h1 className="text-2xl font-bold mr-2">{isRestaurante ? 'Fechamentos' : 'Vendas'}</h1>
+          {!isRestaurante && (
+            <div className="flex items-center gap-2">
+              <button
+                className={period === 'today' ? 'btn-primary' : 'btn-outline'}
+                onClick={() => setPeriod('today')}
+              >Hoje</button>
+              <button
+                className={period === 'month' ? 'btn-primary' : 'btn-outline'}
+                onClick={() => setPeriod('month')}
+              >Mês</button>
+              <button
+                className={period === 'all' ? 'btn-primary' : 'btn-outline'}
+                onClick={() => setPeriod('all')}
+              >Todas</button>
+            </div>
+          )}
         </div>
         <div className="flex-1 min-w-[220px] sm:min-w-[320px] max-w-xl">
           <label htmlFor="buscar" className="sr-only">Buscar</label>
@@ -223,17 +240,19 @@ export default function Vendas() {
             </span>
           </div>
         </div>
-        <div className="min-w-[200px]">
-          <label htmlFor="vendedor" className="sr-only">Vendedor</label>
-          <select id="vendedor" className="input w-full" value={usuarioId} onChange={(e) => setUsuarioId(e.target.value)}>
-            <option value="">Todos os vendedores</option>
-            {usuarios.map(u => (
-              <option key={u.id || u.uuid || u.usuario} value={u.id || u.uuid}>
-                {u.nome || u.usuario}
-              </option>
-            ))}
-          </select>
-        </div>
+        {!isRestaurante && (
+          <div className="min-w-[200px]">
+            <label htmlFor="vendedor" className="sr-only">Vendedor</label>
+            <select id="vendedor" className="input w-full" value={usuarioId} onChange={(e) => setUsuarioId(e.target.value)}>
+              <option value="">Todos os vendedores</option>
+              {usuarios.map(u => (
+                <option key={u.id || u.uuid || u.usuario} value={u.id || u.uuid}>
+                  {u.nome || u.usuario}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {error && <p className="text-red-600">{error}</p>}
@@ -249,7 +268,7 @@ export default function Vendas() {
           <div className="mx-auto h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
             <svg className="h-6 w-6 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h18v14H3z"/><path d="M3 9h18"/></svg>
           </div>
-          <p className="mt-3 text-gray-600">Nenhuma venda encontrada.</p>
+          <p className="mt-3 text-gray-600">Nenhum registro encontrado.</p>
         </div>
       )}
 
@@ -259,18 +278,20 @@ export default function Vendas() {
             const total = calcTotal(v)
             const itens = Array.isArray(v.itens) ? v.itens.length : (v.quantidade_itens ?? null)
             const cliente = v.cliente_nome || v.cliente || '—'
+            const titulo = isRestaurante ? `Pedido #${v.pedido_id || (v.pedido_uuid ? String(v.pedido_uuid).slice(0, 8) : '')}` : `Venda #${v.numero || v.id}`
+            const dataLinha = isRestaurante ? (v.created_at ? fmtData(v.created_at) : '—') : (v.data ? fmtData(v.data) : '—')
             return (
               <div
-                key={v.id || v.uuid || JSON.stringify(v)}
+                key={v.id || v.uuid || v.pedido_uuid || JSON.stringify(v)}
                 className="card card-hover cursor-pointer"
                 onClick={async () => {
-                  const id = v.id || v.uuid
+                  const id = v.id || v.uuid || v.pedido_uuid
                   if (!id) return
                   setDetailOpen(true)
                   setSelected(null)
                   setLoadingDetail(true)
                   try {
-                    const full = await api.getVenda(id)
+                    const full = isRestaurante ? await api.getPedido(id) : await api.getVenda(id)
                     setSelected(full)
                   } catch (e) {
                     setSelected({ erro: e.message })
@@ -281,10 +302,19 @@ export default function Vendas() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate" title={`Venda #${v.numero || v.id}`}>Venda #{v.numero || v.id}</h3>
-                    <div className="text-xs sm:text-sm text-gray-500">{v.data ? fmtData(v.data) : '—'}</div>
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate" title={titulo}>{titulo}</h3>
+                    <div className="text-xs sm:text-sm text-gray-500">{dataLinha}</div>
                     <div className="mt-1 flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{cliente}</span>
+                      {isRestaurante ? (
+                        <>
+                          <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                            Mesa {v.mesa_id ?? '—'}{v.lugar_numero ? ` / Cliente ${v.lugar_numero}` : ''}
+                          </span>
+                          <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Pago</span>
+                        </>
+                      ) : (
+                        <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{cliente}</span>
+                      )}
                       {itens != null && (
                         <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">{itens} itens</span>
                       )}
@@ -304,65 +334,106 @@ export default function Vendas() {
       {/* Detalhes da venda */}
       <Modal
         open={detailOpen}
-        title={selected ? `Venda #${selected.numero || selected.id}` : 'Detalhes da venda'}
+        title={selected ? (isRestaurante ? `Pedido #${selected.pedido_id || String(selected.pedido_uuid || '').slice(0, 8)}` : `Venda #${selected.numero || selected.id}`) : (isRestaurante ? 'Detalhes do pedido' : 'Detalhes da venda')}
         onClose={() => { setDetailOpen(false); setSelected(null) }}
       >
         {loadingDetail && <p className="text-gray-500">Carregando...</p>}
         {!loadingDetail && selected && (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <div className="text-xs text-gray-500">Cliente</div>
-                <div className="font-medium">{selected.cliente_nome || selected.cliente || '—'}</div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500">Vendedor</div>
-                <div className="font-medium">{selected.usuario_nome || '—'}</div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500">Data</div>
-                <div className="font-medium">{selected.created_at ? fmtData(selected.created_at) : '—'}</div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500">Forma de pagamento</div>
-                <div className="font-medium">{selected.forma_pagamento || '—'}</div>
-              </div>
-            </div>
-
-            <div>
-              <div className="text-sm font-semibold mb-2">Itens</div>
-              {(!selected.itens || selected.itens.length === 0) ? (
-                <div className="text-sm text-gray-500">Nenhum item.</div>
-              ) : (
-                <div className="divide-y border rounded-md">
-                  {selected.itens.map((it, idx) => {
-                    const pid = it.produto_id
-                    const nome = prodMap[pid] || pid
-                    const qtd = it.quantidade
-                    const peso = it.peso_kg
-                    return (
-                      <div key={it.id || `${pid}-${idx}`} className="p-3 flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="font-medium truncate" title={String(nome)}>{nome}</div>
-                          <div className="text-xs text-gray-500">{qtd ? `${qtd} un` : ''}{(qtd && peso) ? ' • ' : ''}{peso ? `${peso} kg` : ''}</div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <div className="text-xs text-gray-500">Unit</div>
-                          <div className="font-semibold">{fmtMT(it.preco_unitario)}</div>
-                          <div className="text-xs text-gray-500 mt-1">Subtotal</div>
-                          <div className="font-semibold text-green-600">{fmtMT(it.subtotal)}</div>
-                        </div>
-                      </div>
-                    )
-                  })}
+            {selected.erro ? (
+              <div className="text-sm text-red-600">{selected.erro}</div>
+            ) : isRestaurante ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-xs text-gray-500">Status</div>
+                    <div className="font-medium">{selected.status || '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Mesa</div>
+                    <div className="font-medium">Mesa {selected.mesa_id ?? '—'}{selected.lugar_numero ? ` / Cliente ${selected.lugar_numero}` : ''}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Data</div>
+                    <div className="font-medium">{selected.created_at ? fmtData(selected.created_at) : '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Total</div>
+                    <div className="font-medium">{fmtMT(selected.total)}</div>
+                  </div>
                 </div>
-              )}
-            </div>
 
-            <div className="flex items-center justify-between pt-2 border-t">
-              <div className="text-sm text-gray-600">Total</div>
-              <div className="text-lg font-semibold text-green-600">{fmtMT(calcTotal(selected))}</div>
-            </div>
+                <div>
+                  <div className="text-sm font-semibold mb-2">Itens</div>
+                  {(!selected.itens || selected.itens.length === 0) ? (
+                    <div className="text-sm text-gray-500">Nenhum item.</div>
+                  ) : (
+                    <div className="divide-y border rounded-md">
+                      {selected.itens.map((it, idx) => (
+                        <div key={idx} className="p-3 flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="font-medium truncate">{it.produto_nome || it.produto_id}</div>
+                            <div className="text-xs text-gray-500">Qtd: {it.quantidade}</div>
+                          </div>
+                          <div className="font-semibold text-green-700">{fmtMT(it.subtotal)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-xs text-gray-500">Cliente</div>
+                    <div className="font-medium">{selected.cliente_nome || selected.cliente || '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Vendedor</div>
+                    <div className="font-medium">{selected.usuario_nome || '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Data</div>
+                    <div className="font-medium">{selected.created_at ? fmtData(selected.created_at) : '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Forma de pagamento</div>
+                    <div className="font-medium">{selected.forma_pagamento || '—'}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-sm font-semibold mb-2">Itens</div>
+                  {(!selected.itens || selected.itens.length === 0) ? (
+                    <div className="text-sm text-gray-500">Nenhum item.</div>
+                  ) : (
+                    <div className="divide-y border rounded-md">
+                      {selected.itens.map((it, idx) => {
+                        const pid = it.produto_id
+                        const nome = prodMap[pid] || pid
+                        const qtd = it.quantidade
+                        const sub = it.subtotal
+                        return (
+                          <div key={idx} className="p-3 flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="font-medium truncate">{nome}</div>
+                              <div className="text-xs text-gray-500">Qtd: {qtd}</div>
+                            </div>
+                            <div className="font-semibold text-green-700">{fmtMT(sub)}</div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <div className="text-sm text-gray-600">Total</div>
+                  <div className="text-lg font-semibold text-green-600">{fmtMT(calcTotal(selected))}</div>
+                </div>
+              </>
+            )}
           </div>
         )}
       </Modal>

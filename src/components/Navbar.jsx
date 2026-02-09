@@ -50,6 +50,7 @@ export default function Navbar() {
               <>
                 <NavLink to="/pedidos" className={navItem}>Pedidos</NavLink>
                 <NavLink to="/mesas" className={navItem}>Mesas</NavLink>
+                <NavLink to="/vendas" className={navItem}>Fechamentos</NavLink>
               </>
             ) : (
               <NavLink to="/vendas" className={navItem}>Vendas</NavLink>
@@ -140,6 +141,7 @@ export default function Navbar() {
               <>
                 <NavLink to="/pedidos" className={navItem} onClick={() => setOpen(false)}>Pedidos</NavLink>
                 <NavLink to="/mesas" className={navItem} onClick={() => setOpen(false)}>Mesas</NavLink>
+                <NavLink to="/vendas" className={navItem} onClick={() => setOpen(false)}>Fechamentos</NavLink>
               </>
             ) : (
               <NavLink to="/vendas" className={navItem} onClick={() => setOpen(false)}>Vendas</NavLink>
