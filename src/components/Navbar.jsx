@@ -10,6 +10,12 @@ export default function Navbar() {
   const navItem = ({ isActive }) => `${linkBase} ${isActive ? 'text-white font-semibold' : 'text-white/80 hover:text-white'}`
   const [open, setOpen] = useState(false)
 
+  let tipoNegocio = 'mercearia'
+  try {
+    tipoNegocio = String(localStorage.getItem('tenant_tipo_negocio') || 'mercearia')
+  } catch {}
+  const isRestaurante = tipoNegocio === 'restaurante'
+
   function handleLogout() {
     logout()
     navigate('/login', { replace: true })
@@ -38,9 +44,16 @@ export default function Navbar() {
           <div className="hidden md:flex items-center space-x-6">
             <NavLink to="/dashboard" className={navItem}>Dashboard</NavLink>
             <NavLink to="/produtos" className={navItem}>Produtos</NavLink>
-            <NavLink to="/clientes" className={navItem}>Clientes</NavLink>
+            {!isRestaurante && <NavLink to="/clientes" className={navItem}>Clientes</NavLink>}
             <NavLink to="/usuarios" className={navItem}>Usuários</NavLink>
-            <NavLink to="/vendas" className={navItem}>Vendas</NavLink>
+            {isRestaurante ? (
+              <>
+                <NavLink to="/pedidos" className={navItem}>Pedidos</NavLink>
+                <NavLink to="/mesas" className={navItem}>Mesas</NavLink>
+              </>
+            ) : (
+              <NavLink to="/vendas" className={navItem}>Vendas</NavLink>
+            )}
             <NavLink to="/relatorios-financeiros" className={navItem}>Relatórios</NavLink>
           </div>
 
@@ -121,9 +134,16 @@ export default function Navbar() {
           <div className="flex flex-col gap-2">
             <NavLink to="/dashboard" className={navItem} onClick={() => setOpen(false)}>Dashboard</NavLink>
             <NavLink to="/produtos" className={navItem} onClick={() => setOpen(false)}>Produtos</NavLink>
-            <NavLink to="/clientes" className={navItem} onClick={() => setOpen(false)}>Clientes</NavLink>
+            {!isRestaurante && <NavLink to="/clientes" className={navItem} onClick={() => setOpen(false)}>Clientes</NavLink>}
             <NavLink to="/usuarios" className={navItem} onClick={() => setOpen(false)}>Usuários</NavLink>
-            <NavLink to="/vendas" className={navItem} onClick={() => setOpen(false)}>Vendas</NavLink>
+            {isRestaurante ? (
+              <>
+                <NavLink to="/pedidos" className={navItem} onClick={() => setOpen(false)}>Pedidos</NavLink>
+                <NavLink to="/mesas" className={navItem} onClick={() => setOpen(false)}>Mesas</NavLink>
+              </>
+            ) : (
+              <NavLink to="/vendas" className={navItem} onClick={() => setOpen(false)}>Vendas</NavLink>
+            )}
             <NavLink to="/relatorios-financeiros" className={navItem} onClick={() => setOpen(false)}>Relatórios</NavLink>
           </div>
         </div>

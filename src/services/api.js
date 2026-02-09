@@ -184,6 +184,20 @@ export const api = {
     if (offset) qs.set('offset', offset)
     return request(`/api/vendas/periodo?${qs.toString()}`)
   },
+
+  // Restaurante: Pedidos (admin)
+  getPedidos: ({ status, incluir_cancelados = false, limit } = {}) => {
+    const qs = new URLSearchParams()
+    if (status) qs.set('status_filter', status)
+    if (incluir_cancelados) qs.set('incluir_cancelados', 'true')
+    if (limit != null) qs.set('limit', String(limit))
+    const suffix = qs.toString() ? `?${qs.toString()}` : ''
+    return request(`/api/pedidos/${suffix}`)
+  },
+  getPedido: (uuid) => request(`/api/pedidos/uuid/${encodeURIComponent(uuid)}`),
+  updatePedidoStatus: (uuid, status) => request(`/api/pedidos/uuid/${encodeURIComponent(uuid)}/status`, { method: 'PUT', body: { status } }),
+  // Mesas
+  getMesas: () => request('/api/mesas/'),
   // Dívidas
   /**
    * Cria uma nova dívida no backend.

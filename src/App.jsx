@@ -7,6 +7,8 @@ import Produtos from './pages/Produtos'
 import Usuarios from './pages/Usuarios'
 import Clientes from './pages/Clientes'
 import Vendas from './pages/Vendas'
+import Pedidos from './pages/Pedidos'
+import Mesas from './pages/Mesas'
 import RelatoriosFinanceiros from './pages/RelatoriosFinanceiros'
 import Configuracoes from './pages/Configuracoes'
 import Dividas from './pages/Dividas'
@@ -26,6 +28,8 @@ function App() {
           <Route path="/usuarios" element={<Usuarios />} />
           <Route path="/clientes" element={<Clientes />} />
           <Route path="/vendas" element={<Vendas />} />
+          <Route path="/pedidos" element={<Pedidos />} />
+          <Route path="/mesas" element={<Mesas />} />
           <Route path="/dividas" element={<Dividas />} />
           <Route path="/relatorios-financeiros" element={<RelatoriosFinanceiros />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
