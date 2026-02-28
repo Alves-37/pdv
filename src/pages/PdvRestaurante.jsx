@@ -402,7 +402,10 @@ export default function PdvRestaurante() {
                 <option value="DINHEIRO">Dinheiro</option>
                 <option value="M_PESA">M-Pesa</option>
                 <option value="EMOLA">eMola</option>
-                <option value="CARTAO">Cartão</option>
+                <option value="MKESH">mKesh</option>
+                <option value="CARTAO">Cartão / POS</option>
+                <option value="TRANSFERENCIA">Transferência bancária</option>
+                <option value="CHEQUE">Cheque</option>
               </select>
             </div>
 
