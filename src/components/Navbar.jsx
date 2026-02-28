@@ -32,7 +32,7 @@ export default function Navbar() {
         <div className="flex h-14 items-center justify-between">
           {/* Brand */}
           <div className="flex items-center min-w-0">
-            <Link to="/" className={`text-lg font-bold text-white whitespace-nowrap rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-700`}>
+            <Link to={isAdmin ? '/dashboard' : '/pdv'} className={`text-lg font-bold text-white whitespace-nowrap rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-700`}>
               Bem vindo(a)
             </Link>
             {/* Nome do usuário ao lado da marca */}

@@ -290,6 +290,12 @@ export default function PdvRestaurante() {
     )
   }
 
+  let isAdmin = false
+  try {
+    const u = JSON.parse(localStorage.getItem('user') || 'null')
+    isAdmin = !!u?.is_admin
+  } catch {}
+
   return (
     <div className="h-[calc(100vh-56px)] flex flex-col">
       {toast && (
@@ -303,7 +309,7 @@ export default function PdvRestaurante() {
         <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
           <h1 className="text-2xl font-bold">PDV</h1>
           <div className="flex items-center gap-2">
-            <button className="btn-outline" onClick={() => navigate('/produtos')}>Gerir produtos</button>
+            {isAdmin && <button className="btn-outline" onClick={() => navigate('/produtos')}>Gerir produtos</button>}
           </div>
         </div>
 

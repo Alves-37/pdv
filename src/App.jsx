@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import PrivateRoute from './routes/PrivateRoute'
+import AdminRoute from './routes/AdminRoute'
+import HomeRedirect from './routes/HomeRedirect'
 import AppLayout from './layouts/AppLayout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -25,27 +27,31 @@ function App() {
       {/* Rotas privadas com layout */}
       <Route element={<PrivateRoute />}> 
         <Route element={<AppLayout />}> 
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/produtos" element={<Produtos />} />
-          <Route path="/usuarios" element={<Usuarios />} />
-          <Route path="/clientes" element={<Clientes />} />
           <Route path="/pdv" element={<PdvRestaurante />} />
           <Route path="/vendas" element={<Vendas />} />
           <Route path="/minhas-vendas" element={<MinhasVendas />} />
-          <Route path="/pedidos" element={<Pedidos />} />
-          <Route path="/mesas" element={<Mesas />} />
-          <Route path="/dividas" element={<Dividas />} />
-          <Route path="/relatorios-financeiros" element={<RelatoriosFinanceiros />} />
-          <Route path="/configuracoes" element={<Configuracoes />} />
           <Route path="/selecionar-tipo" element={<SelecionarTipo />} />
 
+          {/* Rotas somente admin */}
+          <Route element={<AdminRoute />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/produtos" element={<Produtos />} />
+            <Route path="/usuarios" element={<Usuarios />} />
+            <Route path="/clientes" element={<Clientes />} />
+            <Route path="/pedidos" element={<Pedidos />} />
+            <Route path="/mesas" element={<Mesas />} />
+            <Route path="/dividas" element={<Dividas />} />
+            <Route path="/relatorios-financeiros" element={<RelatoriosFinanceiros />} />
+            <Route path="/configuracoes" element={<Configuracoes />} />
+          </Route>
+
           {/* Redirect raiz para dashboard */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<HomeRedirect />} />
         </Route>
       </Route>
 
       {/* Catch-all: redireciona para dashboard se autenticado, senão login */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<HomeRedirect />} />
     </Routes>
   )
 }
