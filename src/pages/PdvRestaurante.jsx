@@ -294,11 +294,11 @@ export default function PdvRestaurante() {
       </div>
 
       <div className="sticky bottom-0 z-40 border-t bg-white/95 backdrop-blur" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-1.5 sm:py-3 space-y-1.5 sm:space-y-3">
           <div className="flex items-center justify-between gap-3">
             <button
               type="button"
-              className="relative inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
+              className="relative inline-flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
               onClick={() => setCartOpen(v => !v)}
               aria-expanded={cartOpen}
               aria-label="Abrir carrinho"
@@ -308,7 +308,7 @@ export default function PdvRestaurante() {
                 <circle cx="20" cy="21" r="1" />
                 <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6" />
               </svg>
-              <span className="text-sm font-medium">Carrinho</span>
+              <span className="text-sm font-medium hidden sm:inline">Carrinho</span>
               {cartCount > 0 && (
                 <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1 rounded-full bg-primary-600 text-white text-xs flex items-center justify-center">
                   {cartCount}
@@ -317,13 +317,13 @@ export default function PdvRestaurante() {
             </button>
 
             <div className="text-right">
-              <div className="text-xs text-gray-600">Total</div>
-              <div className="text-lg font-semibold text-green-700">{fmtMT(cartTotal)}</div>
+              <div className="text-xs text-gray-600 hidden sm:block">Total</div>
+              <div className="text-base sm:text-lg font-semibold text-green-700">{fmtMT(cartTotal)}</div>
             </div>
           </div>
 
           {cartOpen && cart.length > 0 && (
-            <div className="max-h-40 overflow-y-auto border rounded-lg">
+            <div className="max-h-32 sm:max-h-40 overflow-y-auto border rounded-lg">
               {cart.map((it) => (
                 <div key={it.produto_id} className="px-3 py-2 flex items-center justify-between gap-2 border-b last:border-b-0">
                   <div className="min-w-0">
@@ -358,9 +358,9 @@ export default function PdvRestaurante() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-1 sm:gap-2">
             <div>
-              <label className="text-xs text-gray-600">Tipo</label>
+              <label className="text-xs text-gray-600 hidden sm:block">Tipo</label>
               <select className="input w-full" value={tipoVenda} onChange={(e) => {
                 const v = e.target.value
                 setTipoVenda(v)
@@ -372,7 +372,7 @@ export default function PdvRestaurante() {
             </div>
 
             <div>
-              <label className="text-xs text-gray-600">Mesa</label>
+              <label className="text-xs text-gray-600 hidden sm:block">Mesa</label>
               <button
                 type="button"
                 className="btn-outline w-full"
@@ -384,7 +384,7 @@ export default function PdvRestaurante() {
             </div>
 
             <div>
-              <label className="text-xs text-gray-600">Cliente</label>
+              <label className="text-xs text-gray-600 hidden sm:block">Cliente</label>
               <button
                 type="button"
                 className="btn-outline w-full"
@@ -397,7 +397,7 @@ export default function PdvRestaurante() {
             </div>
 
             <div>
-              <label className="text-xs text-gray-600">Pagamento</label>
+              <label className="text-xs text-gray-600 hidden sm:block">Pagamento</label>
               <select className="input w-full" value={formaPagamento} onChange={(e) => setFormaPagamento(e.target.value)}>
                 <option value="DINHEIRO">Dinheiro</option>
                 <option value="M_PESA">M-Pesa</option>
@@ -409,7 +409,7 @@ export default function PdvRestaurante() {
               </select>
             </div>
 
-            <div className="flex items-end">
+            <div className="flex items-end col-span-2 sm:col-span-1">
               <button
                 type="button"
                 className="btn-primary w-full"
