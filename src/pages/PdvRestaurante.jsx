@@ -15,6 +15,8 @@ export default function PdvRestaurante() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
+  const [categoria, setCategoria] = useState('todos')
+
   const [cartOpen, setCartOpen] = useState(false)
 
   const [tipoVenda, setTipoVenda] = useState('balcao')
@@ -115,6 +117,17 @@ export default function PdvRestaurante() {
   const cartTotal = useMemo(() => {
     return (cart || []).reduce((acc, it) => acc + Number(it?.subtotal || 0), 0)
   }, [cart])
+
+  const produtosFiltrados = useMemo(() => {
+    const base = Array.isArray(produtos) ? produtos : []
+    if (categoria === 'bebidas') {
+      return base.filter(p => Number(p?.categoria_id ?? 0) === 2)
+    }
+    if (categoria === 'comida') {
+      return base.filter(p => Number(p?.categoria_id ?? 0) !== 2)
+    }
+    return base
+  }, [produtos, categoria])
 
   const cartCount = useMemo(() => {
     return (cart || []).reduce((acc, it) => acc + Number(it?.quantidade || 0), 0)
@@ -231,6 +244,24 @@ export default function PdvRestaurante() {
           </div>
         </div>
 
+        <div className="flex items-center gap-2 mb-3">
+          <button
+            type="button"
+            className={categoria === 'todos' ? 'btn-primary' : 'btn-outline'}
+            onClick={() => setCategoria('todos')}
+          >Todos</button>
+          <button
+            type="button"
+            className={categoria === 'comida' ? 'btn-primary' : 'btn-outline'}
+            onClick={() => setCategoria('comida')}
+          >Comida</button>
+          <button
+            type="button"
+            className={categoria === 'bebidas' ? 'btn-primary' : 'btn-outline'}
+            onClick={() => setCategoria('bebidas')}
+          >Bebidas</button>
+        </div>
+
         {error && <p className="text-red-600 mb-3">{error}</p>}
 
         {loading && (
@@ -245,15 +276,15 @@ export default function PdvRestaurante() {
           </div>
         )}
 
-        {!loading && produtos.length === 0 && (
+        {!loading && produtosFiltrados.length === 0 && (
           <div className="card text-center py-10">
             <p className="text-gray-600">Nenhum produto encontrado.</p>
           </div>
         )}
 
-        {!loading && produtos.length > 0 && (
+        {!loading && produtosFiltrados.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pb-6">
-            {produtos.filter(p => p?.ativo !== false).map((p) => {
+            {produtosFiltrados.filter(p => p?.ativo !== false).map((p) => {
               const imgUrl = getProdutoImageUrl(p)
               const preco = Number(p.preco_venda ?? p.preco ?? 0)
               const inCart = cart.find(x => String(x.produto_id) === String(p.id))
