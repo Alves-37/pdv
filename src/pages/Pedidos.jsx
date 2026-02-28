@@ -38,7 +38,12 @@ export default function Pedidos() {
       setLoading(true)
       setError(null)
       try {
-        const data = await api.getPedidos({ status: status || undefined, mesaId: mesaId || undefined, limit: 200 })
+        const mesaDigits = String(mesaId || '').match(/\d+/)?.[0]
+        const data = await api.getPedidos({
+          status: status || undefined,
+          mesaId: mesaDigits || undefined,
+          limit: 200,
+        })
         if (!mounted) return
         setTodos(Array.isArray(data) ? data : [])
       } catch (e) {
@@ -126,7 +131,12 @@ export default function Pedidos() {
       await api.updatePedidoStatus(selected.pedido_uuid, st)
       setUpdateOpen(false)
       // refresh
-      const data = await api.getPedidos({ status: status || undefined, mesaId: mesaId || undefined, limit: 200 })
+      const mesaDigits = String(mesaId || '').match(/\d+/)?.[0]
+      const data = await api.getPedidos({
+        status: status || undefined,
+        mesaId: mesaDigits || undefined,
+        limit: 200,
+      })
       setTodos(Array.isArray(data) ? data : [])
     } catch (e) {
       setError(e.message)
@@ -144,10 +154,7 @@ export default function Pedidos() {
             className="input w-full"
             value={mesaId}
             inputMode="numeric"
-            onChange={(e) => {
-              const v = String(e.target.value || '').replace(/\D+/g, '')
-              setMesaId(v)
-            }}
+            onChange={(e) => setMesaId(e.target.value)}
             placeholder="Mesa (ex: 3)"
           />
           <select className="input w-full" value={status} onChange={(e) => setStatus(e.target.value)}>
