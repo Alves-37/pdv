@@ -13,6 +13,7 @@ import RelatoriosFinanceiros from './pages/RelatoriosFinanceiros'
 import Configuracoes from './pages/Configuracoes'
 import Dividas from './pages/Dividas'
 import SelecionarTipo from './pages/SelecionarTipo'
+import PdvRestaurante from './pages/PdvRestaurante'
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           <Route path="/produtos" element={<Produtos />} />
           <Route path="/usuarios" element={<Usuarios />} />
           <Route path="/clientes" element={<Clientes />} />
+          <Route path="/pdv" element={<PdvRestaurante />} />
           <Route path="/vendas" element={<Vendas />} />
           <Route path="/pedidos" element={<Pedidos />} />
           <Route path="/mesas" element={<Mesas />} />
