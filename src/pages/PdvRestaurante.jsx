@@ -15,9 +15,19 @@ export default function PdvRestaurante() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
+  const [cartOpen, setCartOpen] = useState(false)
+
   const [tipoVenda, setTipoVenda] = useState('balcao')
   const [mesaId, setMesaId] = useState(null)
   const [mesaModalOpen, setMesaModalOpen] = useState(false)
+  const [mesaCapacidade, setMesaCapacidade] = useState(1)
+  const [lugarNumero, setLugarNumero] = useState(1)
+  const [clienteId, setClienteId] = useState(null)
+  const [clienteNome, setClienteNome] = useState('')
+  const [clientesModalOpen, setClientesModalOpen] = useState(false)
+  const [clientesQ, setClientesQ] = useState('')
+  const [clientes, setClientes] = useState([])
+  const [clientesLoading, setClientesLoading] = useState(false)
   const [formaPagamento, setFormaPagamento] = useState('DINHEIRO')
   const [finalizando, setFinalizando] = useState(false)
 
@@ -59,6 +69,28 @@ export default function PdvRestaurante() {
     }
   }, [isRestaurante])
 
+  useEffect(() => {
+    if (!clientesModalOpen) return
+    let mounted = true
+    async function loadClientes() {
+      setClientesLoading(true)
+      try {
+        const data = await api.getClientes(clientesQ)
+        const arr = Array.isArray(data) ? data : (data?.items || [])
+        if (mounted) setClientes(Array.isArray(arr) ? arr : [])
+      } catch {
+        if (mounted) setClientes([])
+      } finally {
+        if (mounted) setClientesLoading(false)
+      }
+    }
+    const id = setTimeout(loadClientes, 200)
+    return () => {
+      mounted = false
+      clearTimeout(id)
+    }
+  }, [clientesModalOpen, clientesQ])
+
   const fmtMT = (v) => {
     if (v === null || v === undefined) return '—'
     try {
@@ -80,6 +112,10 @@ export default function PdvRestaurante() {
 
   const cartTotal = useMemo(() => {
     return (cart || []).reduce((acc, it) => acc + Number(it?.subtotal || 0), 0)
+  }, [cart])
+
+  const cartCount = useMemo(() => {
+    return (cart || []).reduce((acc, it) => acc + Number(it?.quantidade || 0), 0)
   }, [cart])
 
   function addToCart(prod) {
@@ -117,6 +153,16 @@ export default function PdvRestaurante() {
     })
   }
 
+  function removeItem(produtoId) {
+    setCart((prev) => {
+      const arr = Array.isArray(prev) ? [...prev] : []
+      const idx = arr.findIndex(x => String(x.produto_id) === String(produtoId))
+      if (idx < 0) return arr
+      arr.splice(idx, 1)
+      return arr
+    })
+  }
+
   async function finalizar() {
     if (finalizando) return
     if (!cart || cart.length === 0) {
@@ -132,13 +178,14 @@ export default function PdvRestaurante() {
     setError(null)
     try {
       const payload = {
+        cliente_id: clienteId ? String(clienteId) : undefined,
         total: Number(cartTotal || 0),
         desconto: 0,
         forma_pagamento: String(formaPagamento || 'DINHEIRO'),
         tipo_pedido: 'local',
         status_pedido: 'pago',
         mesa_id: tipoVenda === 'mesa' ? Number(mesaId) : 0,
-        lugar_numero: 1,
+        lugar_numero: tipoVenda === 'mesa' ? Number(lugarNumero || 1) : 1,
         itens: cart.map(it => ({
           produto_id: String(it.produto_id),
           quantidade: Number(it.quantidade || 0),
@@ -148,7 +195,12 @@ export default function PdvRestaurante() {
       }
       await api.createVenda(payload)
       setCart([])
+      setCartOpen(false)
       setMesaId(null)
+      setMesaCapacidade(1)
+      setLugarNumero(1)
+      setClienteId(null)
+      setClienteNome('')
       setTipoVenda('balcao')
       setFormaPagamento('DINHEIRO')
     } catch (e) {
@@ -168,8 +220,8 @@ export default function PdvRestaurante() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-56px)] flex flex-col">
-      <div className="px-1 sm:px-0">
+    <div className="h-[calc(100vh-56px)] flex flex-col">
+      <div className="px-1 sm:px-0 flex-1 overflow-y-auto">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
           <h1 className="text-2xl font-bold">PDV</h1>
           <div className="flex items-center gap-2">
@@ -198,7 +250,7 @@ export default function PdvRestaurante() {
         )}
 
         {!loading && produtos.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pb-40">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pb-6">
             {produtos.filter(p => p?.ativo !== false).map((p) => {
               const imgUrl = getProdutoImageUrl(p)
               const preco = Number(p.preco_venda ?? p.preco ?? 0)
@@ -241,14 +293,36 @@ export default function PdvRestaurante() {
         )}
       </div>
 
-      <div className="fixed left-0 right-0 bottom-0 z-40 border-t bg-white/95 backdrop-blur" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="sticky bottom-0 z-40 border-t bg-white/95 backdrop-blur" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <div className="text-sm text-gray-600">Total</div>
-            <div className="text-lg font-semibold text-green-700">{fmtMT(cartTotal)}</div>
+            <button
+              type="button"
+              className="relative inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
+              onClick={() => setCartOpen(v => !v)}
+              aria-expanded={cartOpen}
+              aria-label="Abrir carrinho"
+            >
+              <svg className="h-5 w-5 text-gray-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="21" r="1" />
+                <circle cx="20" cy="21" r="1" />
+                <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6" />
+              </svg>
+              <span className="text-sm font-medium">Carrinho</span>
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1 rounded-full bg-primary-600 text-white text-xs flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+
+            <div className="text-right">
+              <div className="text-xs text-gray-600">Total</div>
+              <div className="text-lg font-semibold text-green-700">{fmtMT(cartTotal)}</div>
+            </div>
           </div>
 
-          {cart.length > 0 && (
+          {cartOpen && cart.length > 0 && (
             <div className="max-h-40 overflow-y-auto border rounded-lg">
               {cart.map((it) => (
                 <div key={it.produto_id} className="px-3 py-2 flex items-center justify-between gap-2 border-b last:border-b-0">
@@ -261,7 +335,24 @@ export default function PdvRestaurante() {
                     <div className="w-10 text-center font-semibold">{it.quantidade}</div>
                     <button className="btn-outline" type="button" onClick={() => changeQty(it.produto_id, 1)}>+</button>
                   </div>
-                  <div className="w-28 text-right font-semibold">{fmtMT(it.subtotal)}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-24 text-right font-semibold">{fmtMT(it.subtotal)}</div>
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center p-2 rounded-md border border-red-300 text-red-700 hover:bg-red-50"
+                      title="Excluir"
+                      aria-label="Excluir item"
+                      onClick={() => removeItem(it.produto_id)}
+                    >
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
+                        <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -289,6 +380,19 @@ export default function PdvRestaurante() {
                 onClick={() => setMesaModalOpen(true)}
               >
                 {mesaId ? `Mesa ${mesaId}` : 'Selecionar mesa'}
+              </button>
+            </div>
+
+            <div>
+              <label className="text-xs text-gray-600">Cliente</label>
+              <button
+                type="button"
+                className="btn-outline w-full"
+                disabled={tipoVenda !== 'mesa' || !mesaId || Number(mesaCapacidade || 1) < 2}
+                onClick={() => setClientesModalOpen(true)}
+                title={Number(mesaCapacidade || 1) < 2 ? 'A mesa não exige seleção de cliente/lugar' : undefined}
+              >
+                {clienteNome ? clienteNome : (Number(mesaCapacidade || 1) >= 2 ? `Selecionar cliente (Lugar ${lugarNumero})` : '—')}
               </button>
             </div>
 
@@ -328,19 +432,101 @@ export default function PdvRestaurante() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {mesas.map((m, idx) => {
               const n = Number(m?.numero ?? idx)
+              const cap = Number(m?.capacidade ?? 1)
               return (
                 <button
                   key={m?.id ?? m?.numero ?? idx}
                   type="button"
                   className={`btn-outline ${mesaId === n ? 'ring-2 ring-primary-500/40' : ''}`}
-                  onClick={() => { setMesaId(n); setMesaModalOpen(false) }}
+                  onClick={() => {
+                    setMesaId(n)
+                    setMesaCapacidade(cap > 0 ? cap : 1)
+                    setLugarNumero(1)
+                    setClienteId(null)
+                    setClienteNome('')
+                    setMesaModalOpen(false)
+                    if (cap >= 2) setClientesModalOpen(true)
+                  }}
                 >
-                  Mesa {n}
+                  Mesa {n}{cap ? ` (${cap})` : ''}
                 </button>
               )
             })}
           </div>
         )}
+      </Modal>
+
+      <Modal
+        open={clientesModalOpen}
+        title={mesaId ? `Clientes da Mesa ${mesaId}` : 'Clientes'}
+        onClose={() => setClientesModalOpen(false)}
+        actions={<button className="btn-outline" onClick={() => setClientesModalOpen(false)}>Fechar</button>}
+      >
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-gray-600">Lugar</label>
+              <select
+                className="input w-full"
+                value={String(lugarNumero)}
+                onChange={(e) => {
+                  const v = Number(e.target.value)
+                  setLugarNumero(v)
+                  setClienteId(null)
+                  setClienteNome('')
+                }}
+              >
+                {Array.from({ length: Math.max(1, Number(mesaCapacidade || 1)) }).map((_, i) => (
+                  <option key={i + 1} value={i + 1}>{i + 1}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs text-gray-600">Buscar cliente</label>
+              <input
+                className="input w-full"
+                value={clientesQ}
+                onChange={(e) => setClientesQ(e.target.value)}
+                placeholder="Nome, telefone ou documento"
+              />
+            </div>
+          </div>
+
+          {clientesLoading && (
+            <div className="text-sm text-gray-600">Carregando...</div>
+          )}
+
+          {!clientesLoading && clientes.length === 0 && (
+            <div className="text-sm text-gray-600">Nenhum cliente encontrado.</div>
+          )}
+
+          {!clientesLoading && clientes.length > 0 && (
+            <div className="max-h-64 overflow-y-auto border rounded-lg">
+              {clientes.map((c, idx) => {
+                const id = c?.id || c?.uuid
+                const nome = c?.nome || 'Cliente'
+                const sub = c?.telefone || c?.documento || ''
+                const selected = id && String(id) === String(clienteId)
+                return (
+                  <button
+                    key={id || idx}
+                    type="button"
+                    className={`w-full text-left px-3 py-2 border-b last:border-b-0 hover:bg-gray-50 ${selected ? 'bg-primary-50' : ''}`}
+                    onClick={() => {
+                      setClienteId(id ? String(id) : null)
+                      setClienteNome(nome)
+                      setClientesModalOpen(false)
+                    }}
+                  >
+                    <div className="font-medium">{nome}</div>
+                    {sub ? <div className="text-xs text-gray-500">{sub}</div> : null}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   )
