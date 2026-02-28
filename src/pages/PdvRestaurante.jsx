@@ -40,6 +40,7 @@ export default function PdvRestaurante() {
     let mounted = true
 
     async function load() {
+      if (mesaModalOpen || clientesModalOpen || finalizando) return
       setLoading(true)
       setError(null)
       try {
@@ -59,15 +60,16 @@ export default function PdvRestaurante() {
     }
 
     load()
-    const intervalId = setInterval(load, 15000)
     const onFocus = () => load()
+    const onVisibility = () => { if (document.visibilityState === 'visible') load() }
     window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
     return () => {
       mounted = false
-      clearInterval(intervalId)
       window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [isRestaurante])
+  }, [isRestaurante, mesaModalOpen, clientesModalOpen, finalizando])
 
   useEffect(() => {
     if (!clientesModalOpen) return
