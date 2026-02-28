@@ -18,6 +18,7 @@ export default function PdvRestaurante() {
   const [categoriaId, setCategoriaId] = useState('')
   const [categorias, setCategorias] = useState([])
   const [categoriasErro, setCategoriasErro] = useState(null)
+  const [produtoQ, setProdutoQ] = useState('')
 
   const [cartOpen, setCartOpen] = useState(false)
 
@@ -26,12 +27,8 @@ export default function PdvRestaurante() {
   const [mesaModalOpen, setMesaModalOpen] = useState(false)
   const [mesaCapacidade, setMesaCapacidade] = useState(1)
   const [lugarNumero, setLugarNumero] = useState(1)
-  const [clienteId, setClienteId] = useState(null)
-  const [clienteNome, setClienteNome] = useState('')
   const [clientesModalOpen, setClientesModalOpen] = useState(false)
-  const [clientesQ, setClientesQ] = useState('')
-  const [clientes, setClientes] = useState([])
-  const [clientesLoading, setClientesLoading] = useState(false)
+  const [lugaresOcupados, setLugaresOcupados] = useState([])
   const [formaPagamento, setFormaPagamento] = useState('DINHEIRO')
   const [finalizando, setFinalizando] = useState(false)
   const [toast, setToast] = useState(null)
@@ -92,25 +89,30 @@ export default function PdvRestaurante() {
 
   useEffect(() => {
     if (!clientesModalOpen) return
+    if (!mesaId) {
+      setLugaresOcupados([])
+      return
+    }
     let mounted = true
-    async function loadClientes() {
-      setClientesLoading(true)
+    async function loadOcupados() {
       try {
-        const data = await api.getClientes(clientesQ)
-        const arr = Array.isArray(data) ? data : (data?.items || [])
-        if (mounted) setClientes(Array.isArray(arr) ? arr : [])
+        const data = await api.getPedidos({ mesaId: Number(mesaId), limit: 200 })
+        const arr = Array.isArray(data) ? data : []
+        const ocupados = new Set()
+        for (const p of arr) {
+          const st = String(p?.status || '').toLowerCase()
+          if (st === 'pago' || st === 'cancelado') continue
+          const lugar = Number(p?.lugar_numero || 0)
+          if (lugar > 0) ocupados.add(lugar)
+        }
+        if (mounted) setLugaresOcupados(Array.from(ocupados))
       } catch {
-        if (mounted) setClientes([])
-      } finally {
-        if (mounted) setClientesLoading(false)
+        if (mounted) setLugaresOcupados([])
       }
     }
-    const id = setTimeout(loadClientes, 200)
-    return () => {
-      mounted = false
-      clearTimeout(id)
-    }
-  }, [clientesModalOpen, clientesQ])
+    loadOcupados()
+    return () => { mounted = false }
+  }, [clientesModalOpen, mesaId])
 
   const fmtMT = (v) => {
     if (v === null || v === undefined) return '—'
@@ -138,10 +140,15 @@ export default function PdvRestaurante() {
   const produtosFiltrados = useMemo(() => {
     const base = Array.isArray(produtos) ? produtos : []
     const id = String(categoriaId || '').trim()
-    if (!id) return base
-    return base.filter(p => String(p?.categoria_id ?? '') === id)
-    return base
-  }, [produtos, categoriaId])
+    const q = String(produtoQ || '').trim().toLowerCase()
+    const byCat = id ? base.filter((p) => String(p?.categoria_id ?? '') === id) : base
+    if (!q) return byCat
+    return byCat.filter((p) => {
+      const nome = String(p?.nome || p?.descricao || '').toLowerCase()
+      const codigo = String(p?.codigo || '').toLowerCase()
+      return nome.includes(q) || codigo.includes(q)
+    })
+  }, [produtos, categoriaId, produtoQ])
 
   const cartCount = useMemo(() => {
     return (cart || []).reduce((acc, it) => acc + Number(it?.quantidade || 0), 0)
@@ -210,7 +217,6 @@ export default function PdvRestaurante() {
         const pedidoPayload = {
           mesa_id: Number(mesaId),
           lugar_numero: Number(lugarNumero || 1),
-          cliente_id: clienteId ? String(clienteId) : undefined,
           observacoes: null,
           itens: cart.map(it => ({
             produto_id: String(it.produto_id),
@@ -221,7 +227,6 @@ export default function PdvRestaurante() {
         setToast({ type: 'success', message: 'Pedido criado com sucesso' })
       } else {
         const vendaPayload = {
-          cliente_id: clienteId ? String(clienteId) : undefined,
           total: Number(cartTotal || 0),
           desconto: 0,
           forma_pagamento: String(formaPagamento || 'DINHEIRO'),
@@ -244,8 +249,6 @@ export default function PdvRestaurante() {
       setMesaId(null)
       setMesaCapacidade(1)
       setLugarNumero(1)
-      setClienteId(null)
-      setClienteNome('')
       setTipoVenda('balcao')
       setFormaPagamento('DINHEIRO')
     } catch (e) {
@@ -279,6 +282,15 @@ export default function PdvRestaurante() {
           <div className="flex items-center gap-2">
             <button className="btn-outline" onClick={() => navigate('/produtos')}>Gerir produtos</button>
           </div>
+        </div>
+
+        <div className="mb-3">
+          <input
+            className="input w-full"
+            value={produtoQ}
+            onChange={(e) => setProdutoQ(e.target.value)}
+            placeholder="Buscar produto..."
+          />
         </div>
 
         <div className="mb-3">
@@ -456,7 +468,7 @@ export default function PdvRestaurante() {
             </div>
 
             <div>
-              <label className="text-xs text-gray-600 hidden sm:block">Cliente</label>
+              <label className="text-xs text-gray-600 hidden sm:block">Lugar</label>
               <button
                 type="button"
                 className="btn-outline w-full"
@@ -464,7 +476,7 @@ export default function PdvRestaurante() {
                 onClick={() => setClientesModalOpen(true)}
                 title={Number(mesaCapacidade || 1) < 2 ? 'A mesa não exige seleção de cliente/lugar' : undefined}
               >
-                {clienteNome ? clienteNome : (Number(mesaCapacidade || 1) >= 2 ? `Selecionar cliente (Lugar ${lugarNumero})` : '—')}
+                {Number(mesaCapacidade || 1) >= 2 ? `Selecionar lugar (${lugarNumero})` : '—'}
               </button>
             </div>
 
@@ -488,7 +500,9 @@ export default function PdvRestaurante() {
                 disabled={finalizando || cart.length === 0 || (tipoVenda === 'mesa' && !mesaId)}
                 onClick={finalizar}
               >
-                {finalizando ? 'Finalizando...' : 'Finalizar'}
+                {finalizando
+                  ? (tipoVenda === 'mesa' ? 'Processando...' : 'Finalizando...')
+                  : (tipoVenda === 'mesa' ? 'Processar pedido' : 'Finalizar')}
               </button>
             </div>
           </div>
@@ -517,8 +531,6 @@ export default function PdvRestaurante() {
                     setMesaId(n)
                     setMesaCapacidade(cap > 0 ? cap : 1)
                     setLugarNumero(1)
-                    setClienteId(null)
-                    setClienteNome('')
                     setMesaModalOpen(false)
                     if (cap >= 2) setClientesModalOpen(true)
                   }}
@@ -533,74 +545,41 @@ export default function PdvRestaurante() {
 
       <Modal
         open={clientesModalOpen}
-        title={mesaId ? `Clientes da Mesa ${mesaId}` : 'Clientes'}
+        title={mesaId ? `Lugares da Mesa ${mesaId}` : 'Lugares'}
         onClose={() => setClientesModalOpen(false)}
         actions={<button className="btn-outline" onClick={() => setClientesModalOpen(false)}>Fechar</button>}
       >
         <div className="space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div>
-              <label className="text-xs text-gray-600">Lugar</label>
-              <select
-                className="input w-full"
-                value={String(lugarNumero)}
-                onChange={(e) => {
-                  const v = Number(e.target.value)
-                  setLugarNumero(v)
-                  setClienteId(null)
-                  setClienteNome('')
-                }}
-              >
-                {Array.from({ length: Math.max(1, Number(mesaCapacidade || 1)) }).map((_, i) => (
-                  <option key={i + 1} value={i + 1}>{i + 1}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs text-gray-600">Buscar cliente</label>
-              <input
-                className="input w-full"
-                value={clientesQ}
-                onChange={(e) => setClientesQ(e.target.value)}
-                placeholder="Nome, telefone ou documento"
-              />
-            </div>
-          </div>
-
-          {clientesLoading && (
-            <div className="text-sm text-gray-600">Carregando...</div>
-          )}
-
-          {!clientesLoading && clientes.length === 0 && (
-            <div className="text-sm text-gray-600">Nenhum cliente encontrado.</div>
-          )}
-
-          {!clientesLoading && clientes.length > 0 && (
-            <div className="max-h-64 overflow-y-auto border rounded-lg">
-              {clientes.map((c, idx) => {
-                const id = c?.id || c?.uuid
-                const nome = c?.nome || 'Cliente'
-                const sub = c?.telefone || c?.documento || ''
-                const selected = id && String(id) === String(clienteId)
+          <div>
+            <label className="text-xs text-gray-600">Lugar</label>
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+              {Array.from({ length: Math.max(1, Number(mesaCapacidade || 1)) }).map((_, i) => {
+                const n = i + 1
+                const ocupado = (lugaresOcupados || []).includes(n)
+                const selected = Number(lugarNumero || 1) === n
                 return (
                   <button
-                    key={id || idx}
+                    key={n}
                     type="button"
-                    className={`w-full text-left px-3 py-2 border-b last:border-b-0 hover:bg-gray-50 ${selected ? 'bg-primary-50' : ''}`}
+                    disabled={ocupado}
+                    className={`btn-outline ${selected ? 'ring-2 ring-primary-500/40 bg-primary-50' : ''} ${ocupado ? 'opacity-60 cursor-not-allowed line-through' : ''}`}
                     onClick={() => {
-                      setClienteId(id ? String(id) : null)
-                      setClienteNome(nome)
+                      if (ocupado) return
+                      setLugarNumero(n)
                       setClientesModalOpen(false)
                     }}
                   >
-                    <div className="font-medium">{nome}</div>
-                    {sub ? <div className="text-xs text-gray-500">{sub}</div> : null}
+                    {n}
                   </button>
                 )
               })}
             </div>
-          )}
+            {lugaresOcupados && lugaresOcupados.length > 0 ? (
+              <div className="text-xs text-gray-500 mt-2">
+                Ocupados: {lugaresOcupados.sort((a, b) => a - b).join(', ')}
+              </div>
+            ) : null}
+          </div>
         </div>
       </Modal>
     </div>

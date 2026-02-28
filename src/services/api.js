@@ -186,9 +186,15 @@ export const api = {
   },
 
   // Restaurante: Pedidos (admin)
-  getPedidos: ({ status, incluir_cancelados = false, limit } = {}) => {
+  getPedidos: ({ status, mesaId, incluir_cancelados = false, limit } = {}) => {
     const qs = new URLSearchParams()
     if (status) qs.set('status_filter', status)
+    if (mesaId != null) {
+      const raw = String(mesaId).trim()
+      if (raw && /^\d+$/.test(raw)) {
+        qs.set('mesa_id', raw)
+      }
+    }
     if (incluir_cancelados) qs.set('incluir_cancelados', 'true')
     if (limit != null) qs.set('limit', String(limit))
     const suffix = qs.toString() ? `?${qs.toString()}` : ''

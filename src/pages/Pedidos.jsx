@@ -4,6 +4,7 @@ import Modal from '../components/Modal'
 
 export default function Pedidos() {
   const [status, setStatus] = useState('')
+  const [mesaId, setMesaId] = useState('')
   const [todos, setTodos] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -37,7 +38,7 @@ export default function Pedidos() {
       setLoading(true)
       setError(null)
       try {
-        const data = await api.getPedidos({ status: status || undefined, limit: 200 })
+        const data = await api.getPedidos({ status: status || undefined, mesaId: mesaId || undefined, limit: 200 })
         if (!mounted) return
         setTodos(Array.isArray(data) ? data : [])
       } catch (e) {
@@ -64,7 +65,7 @@ export default function Pedidos() {
       if (intervalId) clearInterval(intervalId)
       window.removeEventListener('focus', onFocus)
     }
-  }, [status])
+  }, [status, mesaId])
 
   const fmtMT = (v) => {
     if (v === null || v === undefined) return '—'
@@ -125,7 +126,7 @@ export default function Pedidos() {
       await api.updatePedidoStatus(selected.pedido_uuid, st)
       setUpdateOpen(false)
       // refresh
-      const data = await api.getPedidos({ status: status || undefined, limit: 200 })
+      const data = await api.getPedidos({ status: status || undefined, mesaId: mesaId || undefined, limit: 200 })
       setTodos(Array.isArray(data) ? data : [])
     } catch (e) {
       setError(e.message)
@@ -138,7 +139,17 @@ export default function Pedidos() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-2xl font-bold">Pedidos</h1>
-        <div className="min-w-[220px]">
+        <div className="grid grid-cols-2 gap-2 min-w-[260px]">
+          <input
+            className="input w-full"
+            value={mesaId}
+            inputMode="numeric"
+            onChange={(e) => {
+              const v = String(e.target.value || '').replace(/\D+/g, '')
+              setMesaId(v)
+            }}
+            placeholder="Mesa (ex: 3)"
+          />
           <select className="input w-full" value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">Todos os status</option>
             <option value="aberto">Aberto</option>
@@ -173,20 +184,25 @@ export default function Pedidos() {
       )}
 
       {!loading && ordenados.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {ordenados.map((p) => (
-            <div key={p.pedido_uuid} className="card">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-sm text-gray-500">#{p.pedido_id}</div>
-                  <div className="font-semibold">{fmtMesa(p)}</div>
+            <div key={p.pedido_uuid} className="card p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-xs text-gray-500 truncate">#{p.pedido_id}</div>
+                  <div className="font-semibold truncate">{fmtMesa(p)}</div>
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full ${badge(p.status)}`}>{String(p.status || '—')}</span>
+                <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${badge(p.status)}`}>{String(p.status || '—')}</span>
               </div>
-              <div className="mt-2 text-sm text-gray-700">Total: <span className="font-semibold">{fmtMT(p.total)}</span></div>
-              <div className="mt-3 flex gap-2">
-                <button className="btn-outline" onClick={() => openDetails(p)}>Detalhes</button>
-                <button className="btn-primary" onClick={() => openUpdate(p)}>Alterar status</button>
+
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <div className="text-xs text-gray-500">Total</div>
+                <div className="text-sm font-semibold text-green-700">{fmtMT(p.total)}</div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button className="btn-outline w-full" onClick={() => openDetails(p)}>Detalhes</button>
+                <button className="btn-primary w-full" onClick={() => openUpdate(p)}>Status</button>
               </div>
             </div>
           ))}
