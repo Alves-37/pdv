@@ -148,6 +148,24 @@ export default function Vendas() {
     } catch { return `${v}` }
   }
 
+  const fmtData = (d) => {
+    if (!d) return '—'
+    try {
+      return new Intl.DateTimeFormat('pt-MZ', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(d))
+    } catch {
+      return `${d}`
+    }
+  }
+
+  const fmtDataHora = (d) => {
+    if (!d) return '—'
+    try {
+      return new Intl.DateTimeFormat('pt-MZ', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(d))
+    } catch {
+      return `${d}`
+    }
+  }
+
   // Calcula total a partir dos itens quando possível (subtotais - desconto)
   const calcTotal = (venda) => {
     if (isRestaurante) {
@@ -165,28 +183,6 @@ export default function Vendas() {
       return total >= 0 ? total : 0
     } catch {
       return Number(venda?.total ?? venda?.total_venda ?? 0)
-    }
-  }
-
-  const fmtData = (d) => {
-    try {
-      if (!d) return '—'
-      let s = typeof d === 'string' ? d : String(d)
-      // Se vier ISO sem timezone (ex.: 2025-09-21T01:16:48.123), assumir UTC
-      const isISO = /^\d{4}-\d{2}-\d{2}T/.test(s)
-      const hasTZ = /Z$|[+-]\d{2}:?\d{2}$/.test(s)
-      if (isISO && !hasTZ) s = s + 'Z'
-
-      const dt = new Date(s)
-      // Formatar sempre em Africa/Maputo para consistência
-      const fmt = new Intl.DateTimeFormat('pt-MZ', {
-        dateStyle: 'short',
-        timeStyle: 'medium',
-        timeZone: 'Africa/Maputo',
-      })
-      return fmt.format(dt)
-    } catch {
-      return d || '—'
     }
   }
 
@@ -278,6 +274,7 @@ export default function Vendas() {
             const total = calcTotal(v)
             const itens = Array.isArray(v.itens) ? v.itens.length : (v.quantidade_itens ?? null)
             const cliente = v.cliente_nome || v.cliente || '—'
+            const vendedor = v.usuario_nome || v.usuario || '—'
             const titulo = isRestaurante ? `Pedido #${v.pedido_id || (v.pedido_uuid ? String(v.pedido_uuid).slice(0, 8) : '')}` : `Venda #${v.numero || v.id}`
             const dataLinha = isRestaurante ? (v.created_at ? fmtData(v.created_at) : '—') : (v.data ? fmtData(v.data) : '—')
             return (
@@ -310,10 +307,16 @@ export default function Vendas() {
                           <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
                             Mesa {v.mesa_id ?? '—'}{v.lugar_numero ? ` / Cliente ${v.lugar_numero}` : ''}
                           </span>
+                          <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                            {vendedor}
+                          </span>
                           <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Pago</span>
                         </>
                       ) : (
-                        <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{cliente}</span>
+                        <>
+                          <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{cliente}</span>
+                          <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{vendedor}</span>
+                        </>
                       )}
                       {itens != null && (
                         <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">{itens} itens</span>
@@ -346,16 +349,24 @@ export default function Vendas() {
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <div className="text-xs text-gray-500">Status</div>
-                    <div className="font-medium">{selected.status || '—'}</div>
-                  </div>
-                  <div>
                     <div className="text-xs text-gray-500">Mesa</div>
                     <div className="font-medium">Mesa {selected.mesa_id ?? '—'}{selected.lugar_numero ? ` / Cliente ${selected.lugar_numero}` : ''}</div>
                   </div>
                   <div>
+                    <div className="text-xs text-gray-500">Processado por</div>
+                    <div className="font-medium">{selected.usuario_nome || '—'}</div>
+                  </div>
+                  <div>
                     <div className="text-xs text-gray-500">Data</div>
                     <div className="font-medium">{selected.created_at ? fmtData(selected.created_at) : '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Status alterado por</div>
+                    <div className="font-medium">{selected.status_updated_by_nome || '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Status alterado em</div>
+                    <div className="font-medium">{selected.status_updated_at ? fmtDataHora(selected.status_updated_at) : '—'}</div>
                   </div>
                   <div>
                     <div className="text-xs text-gray-500">Total</div>

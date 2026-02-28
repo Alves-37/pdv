@@ -20,6 +20,12 @@ export default function Pedidos() {
   const tenantTipoNegocio = (localStorage.getItem('tenant_tipo_negocio') || 'mercearia').toLowerCase()
   const isRestaurante = tenantTipoNegocio === 'restaurante'
 
+  let isAdmin = false
+  try {
+    const u = JSON.parse(localStorage.getItem('user') || 'null')
+    isAdmin = !!u?.is_admin
+  } catch {}
+
   useEffect(() => {
     const token = localStorage.getItem('access_token')
     if (!isRestaurante) {
@@ -123,6 +129,7 @@ export default function Pedidos() {
   }
 
   async function submitUpdate() {
+    if (!isAdmin) return
     if (!selected?.pedido_uuid) return
     const st = String(updateStatus || '').trim()
     if (!st) return
@@ -209,7 +216,11 @@ export default function Pedidos() {
 
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <button className="btn-outline w-full" onClick={() => openDetails(p)}>Detalhes</button>
-                <button className="btn-primary w-full" onClick={() => openUpdate(p)}>Status</button>
+                {isAdmin ? (
+                  <button className="btn-primary w-full" onClick={() => openUpdate(p)}>Status</button>
+                ) : (
+                  <button className="btn-outline w-full" disabled title="Apenas admin pode alterar status">Status</button>
+                )}
               </div>
             </div>
           ))}

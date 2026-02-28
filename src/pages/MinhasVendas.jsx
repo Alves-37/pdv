@@ -7,6 +7,8 @@ export default function MinhasVendas() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
+  const [prodMap, setProdMap] = useState({})
+
   const [detailOpen, setDetailOpen] = useState(false)
   const [selected, setSelected] = useState(null)
 
@@ -24,6 +26,42 @@ export default function MinhasVendas() {
       return `MT ${num}`
     } catch { return `${v}` }
   }
+
+  const fmtHora = (iso) => {
+    if (!iso) return '—'
+    try {
+      const d = new Date(iso)
+      return new Intl.DateTimeFormat('pt-MZ', { hour: '2-digit', minute: '2-digit' }).format(d)
+    } catch { return '—' }
+  }
+
+  const fmtDataHora = (iso) => {
+    if (!iso) return '—'
+    try {
+      const d = new Date(iso)
+      return new Intl.DateTimeFormat('pt-MZ', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(d)
+    } catch { return '—' }
+  }
+
+  useEffect(() => {
+    let mounted = true
+    async function loadProducts() {
+      try {
+        const data = await api.getProdutos('')
+        const arr = Array.isArray(data) ? data : (data?.items || [])
+        const map = {}
+        for (const p of arr) {
+          const key = p.id || p.uuid
+          if (key) map[String(key)] = p.nome || p.descricao || String(key)
+        }
+        if (mounted) setProdMap(map)
+      } catch {
+        if (mounted) setProdMap({})
+      }
+    }
+    loadProducts()
+    return () => { mounted = false }
+  }, [])
 
   const load = useCallback(async () => {
     let mounted = true
@@ -96,6 +134,7 @@ export default function MinhasVendas() {
           {(todos || []).map((v) => (
             <div key={v.id} className="card p-3">
               <div className="text-xs text-gray-500 truncate">#{String(v.id || '').slice(0, 8)}</div>
+              <div className="mt-1 text-xs text-gray-500">Hora: {fmtHora(v.created_at)}</div>
               <div className="mt-2 flex items-center justify-between gap-2">
                 <div className="text-xs text-gray-500">Total</div>
                 <div className="text-sm font-semibold text-green-700">{fmtMT(v.total)}</div>
@@ -119,6 +158,10 @@ export default function MinhasVendas() {
         ) : (
           <div className="space-y-2 text-sm">
             <div className="flex items-center justify-between">
+              <span className="text-gray-600">Data/Hora</span>
+              <span className="font-medium">{fmtDataHora(selected.created_at)}</span>
+            </div>
+            <div className="flex items-center justify-between">
               <span className="text-gray-600">Forma de pagamento</span>
               <span className="font-medium">{selected.forma_pagamento || '—'}</span>
             </div>
@@ -132,7 +175,7 @@ export default function MinhasVendas() {
                 {(selected.itens || []).map((it, idx) => (
                   <div key={idx} className="flex items-center justify-between bg-gray-50 border rounded-md px-3 py-2">
                     <div className="min-w-0">
-                      <div className="font-medium truncate">{it.produto?.nome || it.produto_nome || it.produto_id}</div>
+                      <div className="font-medium truncate">{prodMap[String(it.produto_id)] || it.produto?.nome || it.produto_nome || it.produto_id}</div>
                       <div className="text-xs text-gray-500">Qtd: {it.quantidade}</div>
                     </div>
                     <div className="font-semibold">{fmtMT(it.subtotal)}</div>
