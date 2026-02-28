@@ -3,7 +3,7 @@ import { api } from '../services/api'
 import Modal from '../components/Modal'
 
 export default function Pedidos() {
-  const [status, setStatus] = useState('')
+  const [status, setStatus] = useState('aberto')
   const [mesaId, setMesaId] = useState('')
   const [todos, setTodos] = useState([])
   const [loading, setLoading] = useState(false)
@@ -20,11 +20,9 @@ export default function Pedidos() {
   const tenantTipoNegocio = (localStorage.getItem('tenant_tipo_negocio') || 'mercearia').toLowerCase()
   const isRestaurante = tenantTipoNegocio === 'restaurante'
 
-  let isAdmin = false
-  try {
-    const u = JSON.parse(localStorage.getItem('user') || 'null')
-    isAdmin = !!u?.is_admin
-  } catch {}
+  const canUpdateStatus = true
+
+  const normStatus = (s) => String(s || '').trim().toLowerCase()
 
   useEffect(() => {
     const token = localStorage.getItem('access_token')
@@ -123,14 +121,18 @@ export default function Pedidos() {
   }
 
   function openUpdate(p) {
+    const st = normStatus(p?.status)
+    if (st === 'pago') return
+    if (!canUpdateStatus) return
     setSelected(p)
     setUpdateStatus(String(p?.status || ''))
     setUpdateOpen(true)
   }
 
   async function submitUpdate() {
-    if (!isAdmin) return
+    if (!canUpdateStatus) return
     if (!selected?.pedido_uuid) return
+    if (normStatus(selected?.status) === 'pago') return
     const st = String(updateStatus || '').trim()
     if (!st) return
     setUpdateSubmitting(true)
@@ -216,11 +218,17 @@ export default function Pedidos() {
 
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <button className="btn-outline w-full" onClick={() => openDetails(p)}>Detalhes</button>
-                {isAdmin ? (
-                  <button className="btn-primary w-full" onClick={() => openUpdate(p)}>Status</button>
-                ) : (
-                  <button className="btn-outline w-full" disabled title="Apenas admin pode alterar status">Status</button>
-                )}
+                {(() => {
+                  const st = normStatus(p?.status)
+                  const isPago = st === 'pago'
+                  if (isPago) {
+                    return <button className="btn-outline w-full" disabled title="Pedido já está pago">Status</button>
+                  }
+                  if (!canUpdateStatus) {
+                    return <button className="btn-outline w-full" disabled title="Sem permissão">Status</button>
+                  }
+                  return <button className="btn-primary w-full" onClick={() => openUpdate(p)}>Status</button>
+                })()}
               </div>
             </div>
           ))}
@@ -270,6 +278,7 @@ export default function Pedidos() {
         open={updateOpen}
         title={selected ? `Alterar status #${selected.pedido_id}` : 'Alterar status'}
         onClose={() => { if (!updateSubmitting) setUpdateOpen(false) }}
+        fullScreenMobile={false}
         actions={(
           <>
             <button className="btn-outline" disabled={updateSubmitting} onClick={() => setUpdateOpen(false)}>Cancelar</button>
