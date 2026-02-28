@@ -29,6 +29,7 @@ export default function PdvRestaurante() {
   const [lugarNumero, setLugarNumero] = useState(1)
   const [clientesModalOpen, setClientesModalOpen] = useState(false)
   const [lugaresOcupados, setLugaresOcupados] = useState([])
+  const [ocupacaoPorMesa, setOcupacaoPorMesa] = useState({})
   const [formaPagamento, setFormaPagamento] = useState('DINHEIRO')
   const [finalizando, setFinalizando] = useState(false)
   const [toast, setToast] = useState(null)
@@ -65,6 +66,28 @@ export default function PdvRestaurante() {
         const catsArr = Array.isArray(cats) ? cats : (cats?.items || cats?.results || [])
         setCategorias(Array.isArray(catsArr) ? catsArr : [])
         setCategoriasErro(null)
+
+        try {
+          const pedidos = await api.getPedidos({ limit: 500 })
+          if (!mounted) return
+          const arrP = Array.isArray(pedidos) ? pedidos : []
+          const occ = {}
+          for (const p of arrP) {
+            const mid = Number(p?.mesa_id || 0)
+            if (!mid) continue
+            const st = String(p?.status || '').toLowerCase()
+            if (st === 'pago' || st === 'cancelado') continue
+            const lugar = Number(p?.lugar_numero || 0)
+            if (!lugar) continue
+            if (!occ[mid]) occ[mid] = new Set()
+            occ[mid].add(lugar)
+          }
+          const out = {}
+          for (const [k, set] of Object.entries(occ)) out[Number(k)] = Array.from(set)
+          setOcupacaoPorMesa(out)
+        } catch {
+          if (mounted) setOcupacaoPorMesa({})
+        }
       } catch (e) {
         if (mounted) {
           setError(e.message)
@@ -522,12 +545,21 @@ export default function PdvRestaurante() {
             {mesas.map((m, idx) => {
               const n = Number(m?.numero ?? idx)
               const cap = Number(m?.capacidade ?? 1)
+              const ocupados = (ocupacaoPorMesa && ocupacaoPorMesa[n]) ? ocupacaoPorMesa[n] : []
+              const ocupadosCount = Array.isArray(ocupados) ? ocupados.length : 0
+              const cheia = cap > 0 && ocupadosCount >= cap
+              const statusLabel = cheia ? 'Cheia' : (ocupadosCount > 0 ? 'Ocupada' : 'Livre')
+              const statusClass = cheia
+                ? 'bg-red-50 text-red-700 border-red-200'
+                : (ocupadosCount > 0 ? 'bg-yellow-50 text-yellow-800 border-yellow-200' : 'bg-green-50 text-green-700 border-green-200')
               return (
                 <button
                   key={m?.id ?? m?.numero ?? idx}
                   type="button"
-                  className={`btn-outline ${mesaId === n ? 'ring-2 ring-primary-500/40' : ''}`}
+                  disabled={cheia}
+                  className={`btn-outline relative ${mesaId === n ? 'ring-2 ring-primary-500/40' : ''} ${cheia ? 'opacity-60 cursor-not-allowed' : ''}`}
                   onClick={() => {
+                    if (cheia) return
                     setMesaId(n)
                     setMesaCapacidade(cap > 0 ? cap : 1)
                     setLugarNumero(1)
@@ -535,7 +567,12 @@ export default function PdvRestaurante() {
                     if (cap >= 2) setClientesModalOpen(true)
                   }}
                 >
-                  Mesa {n}{cap ? ` (${cap})` : ''}
+                  <div className="flex flex-col items-start gap-1">
+                    <div>Mesa {n}{cap ? ` (${cap})` : ''}</div>
+                    <div className={`text-[11px] px-2 py-0.5 rounded-full border ${statusClass}`}>
+                      {statusLabel}{cap >= 2 ? ` (${ocupadosCount}/${cap})` : ''}
+                    </div>
+                  </div>
                 </button>
               )
             })}
@@ -562,14 +599,17 @@ export default function PdvRestaurante() {
                     key={n}
                     type="button"
                     disabled={ocupado}
-                    className={`btn-outline ${selected ? 'ring-2 ring-primary-500/40 bg-primary-50' : ''} ${ocupado ? 'opacity-60 cursor-not-allowed line-through' : ''}`}
+                    className={`btn-outline ${selected ? 'ring-2 ring-primary-500/40 bg-primary-50' : ''} ${ocupado ? 'opacity-70 cursor-not-allowed bg-red-50 border-red-200 text-red-700 line-through' : 'bg-green-50 border-green-200 text-green-800'}`}
                     onClick={() => {
                       if (ocupado) return
                       setLugarNumero(n)
                       setClientesModalOpen(false)
                     }}
                   >
-                    {n}
+                    <div className="flex flex-col items-center leading-tight">
+                      <div className="text-sm font-semibold">{n}</div>
+                      <div className="text-[10px]">{ocupado ? 'Ocupado' : 'Livre'}</div>
+                    </div>
                   </button>
                 )
               })}

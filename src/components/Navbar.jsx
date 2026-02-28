@@ -15,6 +15,7 @@ export default function Navbar() {
     tipoNegocio = String(localStorage.getItem('tenant_tipo_negocio') || 'mercearia')
   } catch {}
   const isRestaurante = tipoNegocio === 'restaurante'
+  const isAdmin = !!user?.is_admin
 
   function handleLogout() {
     logout()
@@ -43,20 +44,20 @@ export default function Navbar() {
           {/* Desktop nav */}
           <div className="hidden md:flex items-center space-x-6">
             <NavLink to="/dashboard" className={navItem}>Dashboard</NavLink>
-            <NavLink to="/produtos" className={navItem}>Produtos</NavLink>
-            {!isRestaurante && <NavLink to="/clientes" className={navItem}>Clientes</NavLink>}
-            <NavLink to="/usuarios" className={navItem}>Usuários</NavLink>
+            {isAdmin && <NavLink to="/produtos" className={navItem}>Produtos</NavLink>}
+            {isAdmin && !isRestaurante && <NavLink to="/clientes" className={navItem}>Clientes</NavLink>}
+            {isAdmin && <NavLink to="/usuarios" className={navItem}>Usuários</NavLink>}
             {isRestaurante ? (
               <>
                 <NavLink to="/pdv" className={navItem}>PDV</NavLink>
-                <NavLink to="/pedidos" className={navItem}>Pedidos</NavLink>
-                <NavLink to="/mesas" className={navItem}>Mesas</NavLink>
-                <NavLink to="/vendas" className={navItem}>Fechamentos</NavLink>
+                {isAdmin && <NavLink to="/pedidos" className={navItem}>Pedidos</NavLink>}
+                {isAdmin && <NavLink to="/mesas" className={navItem}>Mesas</NavLink>}
+                {isAdmin ? <NavLink to="/vendas" className={navItem}>Fechamentos</NavLink> : <NavLink to="/minhas-vendas" className={navItem}>Minhas Vendas</NavLink>}
               </>
             ) : (
-              <NavLink to="/vendas" className={navItem}>Vendas</NavLink>
+              isAdmin ? <NavLink to="/vendas" className={navItem}>Vendas</NavLink> : <NavLink to="/minhas-vendas" className={navItem}>Minhas Vendas</NavLink>
             )}
-            <NavLink to="/relatorios-financeiros" className={navItem}>Relatórios</NavLink>
+            {isAdmin && <NavLink to="/relatorios-financeiros" className={navItem}>Relatórios</NavLink>}
           </div>
 
           {/* Desktop user actions */}
@@ -135,20 +136,28 @@ export default function Navbar() {
           </div>
           <div className="flex flex-col gap-2">
             <NavLink to="/dashboard" className={navItem} onClick={() => setOpen(false)}>Dashboard</NavLink>
-            <NavLink to="/produtos" className={navItem} onClick={() => setOpen(false)}>Produtos</NavLink>
-            {!isRestaurante && <NavLink to="/clientes" className={navItem} onClick={() => setOpen(false)}>Clientes</NavLink>}
-            <NavLink to="/usuarios" className={navItem} onClick={() => setOpen(false)}>Usuários</NavLink>
+            {isAdmin && <NavLink to="/produtos" className={navItem} onClick={() => setOpen(false)}>Produtos</NavLink>}
+            {isAdmin && !isRestaurante && <NavLink to="/clientes" className={navItem} onClick={() => setOpen(false)}>Clientes</NavLink>}
+            {isAdmin && <NavLink to="/usuarios" className={navItem} onClick={() => setOpen(false)}>Usuários</NavLink>}
             {isRestaurante ? (
               <>
                 <NavLink to="/pdv" className={navItem} onClick={() => setOpen(false)}>PDV</NavLink>
-                <NavLink to="/pedidos" className={navItem} onClick={() => setOpen(false)}>Pedidos</NavLink>
-                <NavLink to="/mesas" className={navItem} onClick={() => setOpen(false)}>Mesas</NavLink>
-                <NavLink to="/vendas" className={navItem} onClick={() => setOpen(false)}>Fechamentos</NavLink>
+                {isAdmin && <NavLink to="/pedidos" className={navItem} onClick={() => setOpen(false)}>Pedidos</NavLink>}
+                {isAdmin && <NavLink to="/mesas" className={navItem} onClick={() => setOpen(false)}>Mesas</NavLink>}
+                {isAdmin ? (
+                  <NavLink to="/vendas" className={navItem} onClick={() => setOpen(false)}>Fechamentos</NavLink>
+                ) : (
+                  <NavLink to="/minhas-vendas" className={navItem} onClick={() => setOpen(false)}>Minhas Vendas</NavLink>
+                )}
               </>
             ) : (
-              <NavLink to="/vendas" className={navItem} onClick={() => setOpen(false)}>Vendas</NavLink>
+              isAdmin ? (
+                <NavLink to="/vendas" className={navItem} onClick={() => setOpen(false)}>Vendas</NavLink>
+              ) : (
+                <NavLink to="/minhas-vendas" className={navItem} onClick={() => setOpen(false)}>Minhas Vendas</NavLink>
+              )
             )}
-            <NavLink to="/relatorios-financeiros" className={navItem} onClick={() => setOpen(false)}>Relatórios</NavLink>
+            {isAdmin && <NavLink to="/relatorios-financeiros" className={navItem} onClick={() => setOpen(false)}>Relatórios</NavLink>}
           </div>
         </div>
       </div>

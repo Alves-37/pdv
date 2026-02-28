@@ -14,6 +14,7 @@ import Configuracoes from './pages/Configuracoes'
 import Dividas from './pages/Dividas'
 import SelecionarTipo from './pages/SelecionarTipo'
 import PdvRestaurante from './pages/PdvRestaurante'
+import MinhasVendas from './pages/MinhasVendas'
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
           <Route path="/clientes" element={<Clientes />} />
           <Route path="/pdv" element={<PdvRestaurante />} />
           <Route path="/vendas" element={<Vendas />} />
+          <Route path="/minhas-vendas" element={<MinhasVendas />} />
           <Route path="/pedidos" element={<Pedidos />} />
           <Route path="/mesas" element={<Mesas />} />
           <Route path="/dividas" element={<Dividas />} />
