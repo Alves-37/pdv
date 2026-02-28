@@ -194,6 +194,7 @@ export const api = {
     const suffix = qs.toString() ? `?${qs.toString()}` : ''
     return request(`/api/pedidos/${suffix}`)
   },
+  createPedido: (payload) => request('/api/pedidos/', { method: 'POST', body: payload }),
   getPedido: (uuid) => request(`/api/pedidos/uuid/${encodeURIComponent(uuid)}`),
   updatePedidoStatus: (uuid, status) => request(`/api/pedidos/uuid/${encodeURIComponent(uuid)}/status`, { method: 'PUT', body: { status } }),
   // Mesas

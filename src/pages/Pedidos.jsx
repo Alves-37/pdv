@@ -20,12 +20,19 @@ export default function Pedidos() {
   const isRestaurante = tenantTipoNegocio === 'restaurante'
 
   useEffect(() => {
+    const token = localStorage.getItem('access_token')
     if (!isRestaurante) {
       setError('Esta página está disponível apenas para o modo Restaurante.')
       return
     }
 
+    if (!token) {
+      setError('Faça login para visualizar pedidos.')
+      return
+    }
+
     let mounted = true
+    let intervalId = null
     async function load() {
       setLoading(true)
       setError(null)
@@ -34,19 +41,27 @@ export default function Pedidos() {
         if (!mounted) return
         setTodos(Array.isArray(data) ? data : [])
       } catch (e) {
-        if (mounted) setError(e.message)
+        if (!mounted) return
+        const msg = String(e?.message || '')
+        // Se token expirou / inválido, parar polling para não spammar 401
+        if (msg.toLowerCase().includes('http 401') || msg.toLowerCase().includes('not authenticated') || msg.toLowerCase().includes('could not validate credentials')) {
+          setError('Sessão expirada. Faça login novamente.')
+          if (intervalId) clearInterval(intervalId)
+          return
+        }
+        setError(msg)
       } finally {
         if (mounted) setLoading(false)
       }
     }
 
     load()
-    const intervalId = setInterval(load, 15000)
+    intervalId = setInterval(load, 15000)
     const onFocus = () => load()
     window.addEventListener('focus', onFocus)
     return () => {
       mounted = false
-      clearInterval(intervalId)
+      if (intervalId) clearInterval(intervalId)
       window.removeEventListener('focus', onFocus)
     }
   }, [status])

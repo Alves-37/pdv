@@ -15,7 +15,9 @@ export default function PdvRestaurante() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const [categoria, setCategoria] = useState('todos')
+  const [categoriaId, setCategoriaId] = useState('')
+  const [categorias, setCategorias] = useState([])
+  const [categoriasErro, setCategoriasErro] = useState(null)
 
   const [cartOpen, setCartOpen] = useState(false)
 
@@ -32,6 +34,13 @@ export default function PdvRestaurante() {
   const [clientesLoading, setClientesLoading] = useState(false)
   const [formaPagamento, setFormaPagamento] = useState('DINHEIRO')
   const [finalizando, setFinalizando] = useState(false)
+  const [toast, setToast] = useState(null)
+
+  useEffect(() => {
+    if (!toast) return
+    const id = setTimeout(() => setToast(null), 2500)
+    return () => clearTimeout(id)
+  }, [toast])
 
   useEffect(() => {
     if (!isRestaurante) {
@@ -46,16 +55,24 @@ export default function PdvRestaurante() {
       setLoading(true)
       setError(null)
       try {
-        const [m, pr] = await Promise.all([
+        const [m, pr, cats] = await Promise.all([
           api.getMesas(),
           api.getProdutos('', { incluir_inativos: false }),
+          api.getCategorias(),
         ])
         if (!mounted) return
         setMesas(Array.isArray(m) ? m : [])
         const arr = Array.isArray(pr) ? pr : (pr?.items || [])
         setProdutos(Array.isArray(arr) ? arr : [])
+
+        const catsArr = Array.isArray(cats) ? cats : (cats?.items || cats?.results || [])
+        setCategorias(Array.isArray(catsArr) ? catsArr : [])
+        setCategoriasErro(null)
       } catch (e) {
-        if (mounted) setError(e.message)
+        if (mounted) {
+          setError(e.message)
+          setCategoriasErro(e.message)
+        }
       } finally {
         if (mounted) setLoading(false)
       }
@@ -120,14 +137,11 @@ export default function PdvRestaurante() {
 
   const produtosFiltrados = useMemo(() => {
     const base = Array.isArray(produtos) ? produtos : []
-    if (categoria === 'bebidas') {
-      return base.filter(p => Number(p?.categoria_id ?? 0) === 2)
-    }
-    if (categoria === 'comida') {
-      return base.filter(p => Number(p?.categoria_id ?? 0) !== 2)
-    }
+    const id = String(categoriaId || '').trim()
+    if (!id) return base
+    return base.filter(p => String(p?.categoria_id ?? '') === id)
     return base
-  }, [produtos, categoria])
+  }, [produtos, categoriaId])
 
   const cartCount = useMemo(() => {
     return (cart || []).reduce((acc, it) => acc + Number(it?.quantidade || 0), 0)
@@ -192,23 +206,39 @@ export default function PdvRestaurante() {
     setFinalizando(true)
     setError(null)
     try {
-      const payload = {
-        cliente_id: clienteId ? String(clienteId) : undefined,
-        total: Number(cartTotal || 0),
-        desconto: 0,
-        forma_pagamento: String(formaPagamento || 'DINHEIRO'),
-        tipo_pedido: 'local',
-        status_pedido: 'pago',
-        mesa_id: tipoVenda === 'mesa' ? Number(mesaId) : 0,
-        lugar_numero: tipoVenda === 'mesa' ? Number(lugarNumero || 1) : 1,
-        itens: cart.map(it => ({
-          produto_id: String(it.produto_id),
-          quantidade: Number(it.quantidade || 0),
-          preco_unitario: Number(it.preco_unitario || 0),
-          subtotal: Number(it.subtotal || 0),
-        })),
+      if (tipoVenda === 'mesa') {
+        const pedidoPayload = {
+          mesa_id: Number(mesaId),
+          lugar_numero: Number(lugarNumero || 1),
+          cliente_id: clienteId ? String(clienteId) : undefined,
+          observacoes: null,
+          itens: cart.map(it => ({
+            produto_id: String(it.produto_id),
+            quantidade: Number(it.quantidade || 0),
+          })),
+        }
+        await api.createPedido(pedidoPayload)
+        setToast({ type: 'success', message: 'Pedido criado com sucesso' })
+      } else {
+        const vendaPayload = {
+          cliente_id: clienteId ? String(clienteId) : undefined,
+          total: Number(cartTotal || 0),
+          desconto: 0,
+          forma_pagamento: String(formaPagamento || 'DINHEIRO'),
+          tipo_pedido: 'local',
+          status_pedido: 'pago',
+          mesa_id: 0,
+          lugar_numero: 1,
+          itens: cart.map(it => ({
+            produto_id: String(it.produto_id),
+            quantidade: Number(it.quantidade || 0),
+            preco_unitario: Number(it.preco_unitario || 0),
+            subtotal: Number(it.subtotal || 0),
+          })),
+        }
+        await api.createVenda(vendaPayload)
+        setToast({ type: 'success', message: 'Venda finalizada com sucesso' })
       }
-      await api.createVenda(payload)
       setCart([])
       setCartOpen(false)
       setMesaId(null)
@@ -236,6 +266,13 @@ export default function PdvRestaurante() {
 
   return (
     <div className="h-[calc(100vh-56px)] flex flex-col">
+      {toast && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50">
+          <div className="px-3 py-2 rounded shadow bg-green-600 text-white text-sm">
+            {toast.message}
+          </div>
+        </div>
+      )}
       <div className="px-1 sm:px-0 flex-1 overflow-y-auto">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
           <h1 className="text-2xl font-bold">PDV</h1>
@@ -244,22 +281,24 @@ export default function PdvRestaurante() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 mb-3">
-          <button
-            type="button"
-            className={categoria === 'todos' ? 'btn-primary' : 'btn-outline'}
-            onClick={() => setCategoria('todos')}
-          >Todos</button>
-          <button
-            type="button"
-            className={categoria === 'comida' ? 'btn-primary' : 'btn-outline'}
-            onClick={() => setCategoria('comida')}
-          >Comida</button>
-          <button
-            type="button"
-            className={categoria === 'bebidas' ? 'btn-primary' : 'btn-outline'}
-            onClick={() => setCategoria('bebidas')}
-          >Bebidas</button>
+        <div className="mb-3">
+          {categoriasErro ? (
+            <input
+              className="input w-full"
+              value={categoriaId}
+              onChange={(e) => setCategoriaId(e.target.value)}
+              placeholder="Filtrar por categoria (ID)"
+            />
+          ) : (
+            <select className="input w-full" value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)}>
+              <option value="">Todas as categorias</option>
+              {categorias.map((c) => (
+                <option key={c.id || c.uuid || c.nome} value={String(c.id || c.uuid || '')}>
+                  {c.nome || c.descricao || c.id}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         {error && <p className="text-red-600 mb-3">{error}</p>}
