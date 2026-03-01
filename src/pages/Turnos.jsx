@@ -13,7 +13,22 @@ export default function Turnos() {
 
   const [createOpen, setCreateOpen] = useState(false)
   const [createNome, setCreateNome] = useState('')
+  const [createDias, setCreateDias] = useState([1, 2, 3, 4, 5])
+  const [createHoraInicio, setCreateHoraInicio] = useState('08:00')
+  const [createHoraFim, setCreateHoraFim] = useState('16:00')
   const [createSubmitting, setCreateSubmitting] = useState(false)
+
+  const [editOpen, setEditOpen] = useState(false)
+  const [editId, setEditId] = useState('')
+  const [editNome, setEditNome] = useState('')
+  const [editDias, setEditDias] = useState([1, 2, 3, 4, 5])
+  const [editHoraInicio, setEditHoraInicio] = useState('')
+  const [editHoraFim, setEditHoraFim] = useState('')
+  const [editSubmitting, setEditSubmitting] = useState(false)
+
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false)
 
   const [membrosOpen, setMembrosOpen] = useState(false)
   const [selected, setSelected] = useState(null)
@@ -57,14 +72,81 @@ export default function Turnos() {
     if (!nome) return
     setCreateSubmitting(true)
     try {
-      await api.createTurno({ nome })
+      await api.createTurno({
+        nome,
+        dias_semana: createDias,
+        hora_inicio: createHoraInicio,
+        hora_fim: createHoraFim,
+      })
       setCreateOpen(false)
       setCreateNome('')
+      setCreateDias([1, 2, 3, 4, 5])
+      setCreateHoraInicio('08:00')
+      setCreateHoraFim('16:00')
       await load()
     } catch (e) {
       setError(e.message)
     } finally {
       setCreateSubmitting(false)
+    }
+  }
+
+  const diasLabel = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
+  const toggleDia = (arr, d) => {
+    const set = new Set(arr)
+    if (set.has(d)) set.delete(d)
+    else set.add(d)
+    return Array.from(set).sort((a, b) => a - b)
+  }
+
+  function openEdit(t) {
+    setEditId(String(t?.id || ''))
+    setEditNome(String(t?.nome || ''))
+    setEditDias(Array.isArray(t?.dias_semana) ? t.dias_semana : [1, 2, 3, 4, 5])
+    setEditHoraInicio(String(t?.hora_inicio || '08:00'))
+    setEditHoraFim(String(t?.hora_fim || '16:00'))
+    setEditOpen(true)
+  }
+
+  async function submitEdit() {
+    const nome = String(editNome || '').trim()
+    if (!editId || !nome) return
+    setEditSubmitting(true)
+    try {
+      await api.updateTurno(editId, {
+        nome,
+        dias_semana: editDias,
+        hora_inicio: editHoraInicio,
+        hora_fim: editHoraFim,
+      })
+      setEditOpen(false)
+      setEditId('')
+      await load()
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setEditSubmitting(false)
+    }
+  }
+
+  async function apagar(t) {
+    if (!t?.id) return
+    setDeleteTarget(t)
+    setDeleteOpen(true)
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget?.id) return
+    setDeleteSubmitting(true)
+    try {
+      await api.deleteTurno(deleteTarget.id)
+      setDeleteOpen(false)
+      setDeleteTarget(null)
+      await load()
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setDeleteSubmitting(false)
     }
   }
 
@@ -169,6 +251,8 @@ export default function Turnos() {
               </div>
 
               <div className="mt-3 space-y-1 text-sm">
+                <div className="text-xs text-gray-600">Dias: <span className="font-medium text-gray-800">{(t.dias_semana || []).map(d => diasLabel[d] || d).join(', ') || '—'}</span></div>
+                <div className="text-xs text-gray-600">Hora: <span className="font-medium text-gray-800">{t.hora_inicio || '—'} - {t.hora_fim || '—'}</span></div>
                 {(t.membros || []).length === 0 ? (
                   <div className="text-gray-600">Sem membros</div>
                 ) : (
@@ -184,6 +268,10 @@ export default function Turnos() {
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <button className="btn-outline" onClick={() => openMembros(t)}>Equipe</button>
                 <button className="btn-primary" onClick={() => ativar(t)} disabled={t.ativo}>Ativar</button>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <button className="btn-outline" onClick={() => openEdit(t)}>Editar</button>
+                <button className="btn-outline" onClick={() => apagar(t)}>Apagar</button>
               </div>
             </div>
           ))}
@@ -205,6 +293,78 @@ export default function Turnos() {
         <div className="space-y-3">
           <label className="text-sm text-gray-600">Nome</label>
           <input className="input w-full" value={createNome} onChange={e => setCreateNome(e.target.value)} placeholder="Ex: Turno Manhã" />
+
+          <div>
+            <label className="text-sm text-gray-600">Dias da semana</label>
+            <div className="mt-2 grid grid-cols-4 gap-2">
+              {diasLabel.map((lbl, idx) => (
+                <label key={idx} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={createDias.includes(idx)}
+                    onChange={() => setCreateDias(prev => toggleDia(prev, idx))}
+                  />
+                  {lbl}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-gray-600">Hora início</label>
+              <input className="input w-full" type="time" value={createHoraInicio} onChange={e => setCreateHoraInicio(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm text-gray-600">Hora fim</label>
+              <input className="input w-full" type="time" value={createHoraFim} onChange={e => setCreateHoraFim(e.target.value)} />
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={editOpen}
+        title="Editar turno"
+        onClose={() => { if (!editSubmitting) setEditOpen(false) }}
+        fullScreenMobile={false}
+        actions={(
+          <>
+            <button className="btn-outline" disabled={editSubmitting} onClick={() => setEditOpen(false)}>Cancelar</button>
+            <button className="btn-primary" disabled={editSubmitting} onClick={submitEdit}>{editSubmitting ? 'Salvando...' : 'Salvar'}</button>
+          </>
+        )}
+      >
+        <div className="space-y-3">
+          <label className="text-sm text-gray-600">Nome</label>
+          <input className="input w-full" value={editNome} onChange={e => setEditNome(e.target.value)} />
+
+          <div>
+            <label className="text-sm text-gray-600">Dias da semana</label>
+            <div className="mt-2 grid grid-cols-4 gap-2">
+              {diasLabel.map((lbl, idx) => (
+                <label key={idx} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={editDias.includes(idx)}
+                    onChange={() => setEditDias(prev => toggleDia(prev, idx))}
+                  />
+                  {lbl}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-gray-600">Hora início</label>
+              <input className="input w-full" type="time" value={editHoraInicio} onChange={e => setEditHoraInicio(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm text-gray-600">Hora fim</label>
+              <input className="input w-full" type="time" value={editHoraFim} onChange={e => setEditHoraFim(e.target.value)} />
+            </div>
+          </div>
         </div>
       </Modal>
 
@@ -258,6 +418,25 @@ export default function Turnos() {
           ))}
 
           <button className="btn-outline w-full" onClick={addMembro} disabled={membrosSubmitting || (membros || []).length >= 3}>Adicionar membro</button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={deleteOpen}
+        title="Apagar turno"
+        onClose={() => { if (!deleteSubmitting) { setDeleteOpen(false); setDeleteTarget(null) } }}
+        fullScreenMobile={false}
+        actions={(
+          <>
+            <button className="btn-outline" disabled={deleteSubmitting} onClick={() => { setDeleteOpen(false); setDeleteTarget(null) }}>Cancelar</button>
+            <button className="btn-primary" disabled={deleteSubmitting} onClick={confirmDelete}>{deleteSubmitting ? 'Apagando...' : 'Apagar'}</button>
+          </>
+        )}
+      >
+        <div className="space-y-2">
+          <div className="text-sm text-gray-700">Tem certeza que deseja apagar este turno?</div>
+          <div className="text-sm font-semibold text-gray-900">{deleteTarget?.nome || '—'}</div>
+          <div className="text-xs text-gray-500">Essa ação não pode ser desfeita.</div>
         </div>
       </Modal>
     </div>

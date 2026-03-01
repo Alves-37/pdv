@@ -211,6 +211,7 @@ export const api = {
   updateTurno: (id, payload) => request(`/api/turnos/${encodeURIComponent(id)}`, { method: 'PUT', body: payload }),
   ativarTurno: (id) => request(`/api/turnos/${encodeURIComponent(id)}/ativar`, { method: 'POST' }),
   updateTurnoMembros: (id, membros) => request(`/api/turnos/${encodeURIComponent(id)}/membros`, { method: 'PUT', body: { membros } }),
+  deleteTurno: (id) => request(`/api/turnos/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   // Mesas
   getMesas: () => request('/api/mesas/'),
   // Dívidas
