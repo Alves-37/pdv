@@ -12,6 +12,7 @@ export default function Turnos() {
   const [error, setError] = useState(null)
 
   const [createOpen, setCreateOpen] = useState(false)
+  const [createSlot, setCreateSlot] = useState('')
   const [createNome, setCreateNome] = useState('')
   const [createDias, setCreateDias] = useState([0, 1, 2, 3, 4])
   const [createHoraInicio, setCreateHoraInicio] = useState('08:00')
@@ -68,23 +69,39 @@ export default function Turnos() {
   }, [usuarios])
 
   const turnoNomeOptions = useMemo(() => {
-    const base = ['Turno 1', 'Turno 2']
-    const existentes = new Set((todos || []).map(t => String(t?.nome || '').trim()).filter(Boolean))
-    return base.map(nome => ({ nome, disabled: existentes.has(nome) }))
+    const base = [1, 2]
+    const usados = new Set((todos || []).map(t => Number(t?.turno_slot || 0)).filter(n => n === 1 || n === 2))
+    return base.map(slot => ({ slot, disabled: usados.has(slot) }))
+  }, [todos])
+
+  const turnosOrdenados = useMemo(() => {
+    const arr = Array.isArray(todos) ? [...todos] : []
+    arr.sort((a, b) => {
+      const as = Number(a?.turno_slot || 0)
+      const bs = Number(b?.turno_slot || 0)
+      if (as && bs) return as - bs
+      if (as) return -1
+      if (bs) return 1
+      return String(a?.nome || '').localeCompare(String(b?.nome || ''))
+    })
+    return arr
   }, [todos])
 
   async function submitCreate() {
+    const slot = Number(createSlot || 0)
     const nome = String(createNome || '').trim()
-    if (!nome) return
+    if (!slot || !nome) return
     setCreateSubmitting(true)
     try {
       await api.createTurno({
+        turno_slot: slot,
         nome,
         dias_semana: createDias,
         hora_inicio: createHoraInicio,
         hora_fim: createHoraFim,
       })
       setCreateOpen(false)
+      setCreateSlot('')
       setCreateNome('')
       setCreateDias([0, 1, 2, 3, 4])
       setCreateHoraInicio('08:00')
@@ -266,8 +283,8 @@ export default function Turnos() {
                 }}
               >
                 <option value="" disabled>Selecione...</option>
-                {(todos || []).map(t => (
-                  <option key={t.id} value={t.id}>{t.nome}</option>
+                {turnosOrdenados.map(t => (
+                  <option key={t.id} value={t.id}>{t?.turno_slot ? `Turno ${t.turno_slot} - ${t.nome}` : t.nome}</option>
                 ))}
               </select>
             </div>
@@ -329,12 +346,15 @@ export default function Turnos() {
       >
         <div className="space-y-3">
           <label className="text-sm text-gray-600">Turno</label>
-          <select className="input w-full" value={createNome} onChange={e => setCreateNome(e.target.value)}>
+          <select className="input w-full" value={createSlot} onChange={e => setCreateSlot(e.target.value)}>
             <option value="">Selecione...</option>
             {turnoNomeOptions.map(opt => (
-              <option key={opt.nome} value={opt.nome} disabled={opt.disabled}>{opt.nome}</option>
+              <option key={opt.slot} value={String(opt.slot)} disabled={opt.disabled}>{`Turno ${opt.slot}`}</option>
             ))}
           </select>
+
+          <label className="text-sm text-gray-600">Nome do turno</label>
+          <input className="input w-full" value={createNome} onChange={e => setCreateNome(e.target.value)} placeholder="Ex: Manhã / Noite" />
 
           <div>
             <label className="text-sm text-gray-600">Dias da semana</label>
