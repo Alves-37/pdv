@@ -1,10 +1,11 @@
-import { useState } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   // Classes base para acessibilidade e interação: focus primeiro, depois hover
   const linkBase = 'px-2 py-1 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-700 hover:bg-white/10'
   const navItem = ({ isActive }) => `${linkBase} ${isActive ? 'text-white font-semibold' : 'text-white/80 hover:text-white'}`
@@ -16,6 +17,22 @@ export default function Navbar() {
   } catch {}
   const isRestaurante = tipoNegocio === 'restaurante'
   const isAdmin = !!user?.is_admin
+
+  const roleLabel = isAdmin ? 'Admin' : 'Funcionário'
+  const businessLabel = isRestaurante ? 'Restaurante' : 'Mercearia'
+
+  useEffect(() => {
+    if (open) setOpen(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname])
+
+  useEffect(() => {
+    function onKeyDown(e) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   function handleLogout() {
     logout()
@@ -43,6 +60,9 @@ export default function Navbar() {
                 </span>
                 <span className="text-[11px] sm:text-sm text-white/90 font-semibold truncate max-w-[220px] sm:max-w-[320px]">
                   {user?.nome || user?.usuario || ''}
+                </span>
+                <span className="text-[10px] sm:text-xs text-white/70 font-medium truncate max-w-[220px] sm:max-w-[320px]">
+                  {roleLabel} • {businessLabel}
                 </span>
               </div>
             </Link>
@@ -135,13 +155,25 @@ export default function Navbar() {
         </div>
       </div>
 
+      {open && (
+        <button
+          type="button"
+          aria-label="Fechar menu"
+          className="md:hidden fixed inset-0 z-30 bg-black/20"
+          onClick={() => setOpen(false)}
+        />
+      )}
+
       {/* Mobile panel (animated) */}
       <div
-        className={`md:hidden border-t border-white/10 bg-primary-800/95 backdrop-blur transition-all duration-300 ${open ? 'opacity-100 translate-y-0 max-h-[480px]' : 'opacity-0 -translate-y-2 max-h-0 overflow-hidden'}`}
+        className={`md:hidden border-t border-white/10 bg-primary-800/95 backdrop-blur transition-all duration-300 relative z-40 ${open ? 'opacity-100 translate-y-0 max-h-[480px]' : 'opacity-0 -translate-y-2 max-h-0 overflow-hidden'}`}
       >
         <div className="px-4 py-3 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-white/90">{user?.nome || user?.usuario || 'Usuário'}</span>
+            <div className="min-w-0">
+              <div className="text-sm text-white/90 truncate">{user?.nome || user?.usuario || 'Usuário'}</div>
+              <div className="text-xs text-white/70 truncate">{roleLabel} • {businessLabel}</div>
+            </div>
           </div>
           <div className="flex flex-col gap-2">
             {isAdmin && <NavLink to="/dashboard" className={navItem} onClick={() => setOpen(false)}>Dashboard</NavLink>}
