@@ -260,6 +260,18 @@ export const api = {
   // Admin
   resetDadosOnline: () => request('/api/admin/reset-dados', { method: 'POST' }),
   resetDadosTenant: (tenantId) => request(`/api/admin/tenants/${tenantId}/reset-dados`, { method: 'POST' }),
+
+  // Admin: Backups de vendas online (por tenant)
+  getVendasBackups: () => request('/api/admin/vendas-backups'),
+  createVendasBackup: (nome) => request('/api/admin/vendas-backups', { method: 'POST', body: { nome } }),
+  restoreVendasBackup: (backupId) => request(`/api/admin/vendas-backups/${encodeURIComponent(backupId)}/restaurar`, { method: 'POST' }),
+  deleteVendasBackup: (backupId) => request(`/api/admin/vendas-backups/${encodeURIComponent(backupId)}`, { method: 'DELETE' }),
+
+  // Admin: Backups completos (tenant)
+  getTenantBackups: () => request('/api/admin/tenant-backups'),
+  createTenantBackup: (nome) => request('/api/admin/tenant-backups', { method: 'POST', body: { nome } }),
+  restoreTenantBackup: (backupId) => request(`/api/admin/tenant-backups/${encodeURIComponent(backupId)}/restaurar`, { method: 'POST' }),
+  deleteTenantBackup: (backupId) => request(`/api/admin/tenant-backups/${encodeURIComponent(backupId)}`, { method: 'DELETE' }),
 };
 
 export { API_BASE_URL };

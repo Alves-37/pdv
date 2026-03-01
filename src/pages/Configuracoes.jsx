@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../services/api'
+import Modal from '../components/Modal'
 
 export default function Configuracoes() {
   const [empresa, setEmpresa] = useState({ nome: '', nuit: '', telefone: '', email: '', endereco: '' })
@@ -7,6 +8,17 @@ export default function Configuracoes() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
+
+  const [backups, setBackups] = useState([])
+  const [backupsLoading, setBackupsLoading] = useState(false)
+  const [backupNome, setBackupNome] = useState('')
+  const [creatingBackup, setCreatingBackup] = useState(false)
+  const [restoreOpen, setRestoreOpen] = useState(false)
+  const [restoreTarget, setRestoreTarget] = useState(null)
+  const [restoring, setRestoring] = useState(false)
+  const [deleteBackupOpen, setDeleteBackupOpen] = useState(false)
+  const [deleteBackupTarget, setDeleteBackupTarget] = useState(null)
+  const [deletingBackup, setDeletingBackup] = useState(false)
 
   const [resetOpen, setResetOpen] = useState(false)
   const [resetText, setResetText] = useState('')
@@ -35,9 +47,75 @@ export default function Configuracoes() {
         if (mounted) setLoading(false)
       }
     }
+
+    async function loadBackups() {
+      setBackupsLoading(true)
+      try {
+        const rows = await api.getTenantBackups()
+        if (mounted) setBackups(Array.isArray(rows) ? rows : [])
+      } catch (e) {
+        if (mounted) setError(e.message)
+      } finally {
+        if (mounted) setBackupsLoading(false)
+      }
+    }
     load()
+    loadBackups()
     return () => { mounted = false }
   }, [])
+
+  async function criarBackup() {
+    setCreatingBackup(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      await api.createTenantBackup(backupNome || undefined)
+      setBackupNome('')
+      const rows = await api.getTenantBackups()
+      setBackups(Array.isArray(rows) ? rows : [])
+      setSuccess('Backup criado com sucesso.')
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setCreatingBackup(false)
+    }
+  }
+
+  async function confirmarRestaurar() {
+    if (!restoreTarget?.id) return
+    setRestoring(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      await api.restoreTenantBackup(restoreTarget.id)
+      setRestoreOpen(false)
+      setRestoreTarget(null)
+      setSuccess('Backup restaurado com sucesso.')
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setRestoring(false)
+    }
+  }
+
+  async function confirmarApagarBackup() {
+    if (!deleteBackupTarget?.id) return
+    setDeletingBackup(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      await api.deleteTenantBackup(deleteBackupTarget.id)
+      setDeleteBackupOpen(false)
+      setDeleteBackupTarget(null)
+      const rows = await api.getTenantBackups()
+      setBackups(Array.isArray(rows) ? rows : [])
+      setSuccess('Backup apagado com sucesso.')
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setDeletingBackup(false)
+    }
+  }
 
   async function salvar() {
     setSaving(true)
@@ -169,8 +247,8 @@ export default function Configuracoes() {
       <section className="card space-y-4">
         <h2 className="text-lg font-semibold text-red-700">Administração</h2>
         <p className="text-sm text-gray-600">
-          Ação crítica: o botão abaixo apaga todas as vendas online (itens_venda e vendas) no servidor.
-          Produtos, clientes e usuários são mantidos.
+          Ação crítica: o botão abaixo apaga todos os dados do tenant no servidor (vendas, dívidas, mesas, turnos, produtos, clientes, usuários e configurações).
+          Os backups são mantidos.
         </p>
         <button
           className="btn-outline border-red-400 text-red-700 hover:bg-red-50"
@@ -214,6 +292,83 @@ export default function Configuracoes() {
           </div>
         )}
       </section>
+
+      <section className="card space-y-4">
+        <h2 className="text-lg font-semibold">Backups (completo)</h2>
+        <p className="text-sm text-gray-600">
+          Crie backups antes de fazer reset. O reset não apaga os backups.
+          O backup inclui: usuários, clientes, produtos, mesas, turnos, dívidas, vendas e configurações.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+          <div className="md:col-span-2">
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Nome do backup (opcional)</label>
+            <input className="input w-full" value={backupNome} onChange={e => setBackupNome(e.target.value)} placeholder="Ex: Fechamento do dia 01/03" />
+          </div>
+          <button className="btn-primary" onClick={criarBackup} disabled={creatingBackup}>
+            {creatingBackup ? 'Criando...' : 'Criar backup'}
+          </button>
+        </div>
+
+        {backupsLoading ? (
+          <p className="text-sm text-gray-500">Carregando backups...</p>
+        ) : backups.length === 0 ? (
+          <p className="text-sm text-gray-500">Nenhum backup encontrado.</p>
+        ) : (
+          <div className="space-y-2">
+            {backups.map((b) => (
+              <div key={String(b.id)} className="border border-gray-200 rounded-md p-3 flex items-center justify-between gap-3 flex-wrap">
+                <div className="min-w-0">
+                  <div className="font-semibold text-gray-900 truncate">{b.nome || 'Backup'}</div>
+                  <div className="text-xs text-gray-500">{b.created_at}</div>
+                </div>
+                <div className="flex gap-2">
+                  <button className="btn-outline" onClick={() => { setRestoreTarget(b); setRestoreOpen(true); setError(null); setSuccess(null) }}>Restaurar</button>
+                  <button className="btn-outline border-red-300 text-red-700 hover:bg-red-50" onClick={() => { setDeleteBackupTarget(b); setDeleteBackupOpen(true); setError(null); setSuccess(null) }}>Apagar</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <Modal
+        open={restoreOpen}
+        title="Restaurar backup"
+        onClose={() => { if (!restoring) { setRestoreOpen(false); setRestoreTarget(null) } }}
+        fullScreenMobile={false}
+        actions={(
+          <>
+            <button className="btn-outline" disabled={restoring} onClick={() => { setRestoreOpen(false); setRestoreTarget(null) }}>Cancelar</button>
+            <button className="btn-primary" disabled={restoring} onClick={confirmarRestaurar}>{restoring ? 'Restaurando...' : 'Restaurar'}</button>
+          </>
+        )}
+      >
+        <div className="space-y-2">
+          <div className="text-sm text-gray-700">
+            Esta ação vai apagar as vendas atuais e restaurar as vendas do backup selecionado.
+          </div>
+          <div className="text-sm font-semibold text-gray-900">{restoreTarget?.nome || 'Backup'}</div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={deleteBackupOpen}
+        title="Apagar backup"
+        onClose={() => { if (!deletingBackup) { setDeleteBackupOpen(false); setDeleteBackupTarget(null) } }}
+        fullScreenMobile={false}
+        actions={(
+          <>
+            <button className="btn-outline" disabled={deletingBackup} onClick={() => { setDeleteBackupOpen(false); setDeleteBackupTarget(null) }}>Cancelar</button>
+            <button className="btn-primary" disabled={deletingBackup} onClick={confirmarApagarBackup}>{deletingBackup ? 'Apagando...' : 'Apagar'}</button>
+          </>
+        )}
+      >
+        <div className="space-y-2">
+          <div className="text-sm text-gray-700">Tem certeza que deseja apagar este backup?</div>
+          <div className="text-sm font-semibold text-gray-900">{deleteBackupTarget?.nome || 'Backup'}</div>
+        </div>
+      </Modal>
     </div>
   )
 }
