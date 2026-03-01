@@ -214,6 +214,10 @@ export const api = {
   deleteTurno: (id) => request(`/api/turnos/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   // Mesas
   getMesas: () => request('/api/mesas/'),
+  createMesa: (payload) => request('/api/mesas/', { method: 'POST', body: payload }),
+  updateMesa: (id, payload) => request(`/api/mesas/${encodeURIComponent(id)}`, { method: 'PUT', body: payload }),
+  updateMesaStatus: (id, status) => request(`/api/mesas/${encodeURIComponent(id)}/status`, { method: 'PUT', body: { status } }),
+  deleteMesa: (id) => request(`/api/mesas/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   // Dívidas
   /**
    * Cria uma nova dívida no backend.

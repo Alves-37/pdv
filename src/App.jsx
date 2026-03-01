@@ -32,6 +32,7 @@ function App() {
           <Route path="/vendas" element={<Vendas />} />
           <Route path="/minhas-vendas" element={<MinhasVendas />} />
           <Route path="/pedidos" element={<Pedidos />} />
+          <Route path="/mesas" element={<Mesas />} />
           <Route path="/selecionar-tipo" element={<SelecionarTipo />} />
 
           {/* Rotas somente admin */}
@@ -40,7 +41,6 @@ function App() {
             <Route path="/produtos" element={<Produtos />} />
             <Route path="/usuarios" element={<Usuarios />} />
             <Route path="/clientes" element={<Clientes />} />
-            <Route path="/mesas" element={<Mesas />} />
             <Route path="/turnos" element={<Turnos />} />
             <Route path="/dividas" element={<Dividas />} />
             <Route path="/relatorios-financeiros" element={<RelatoriosFinanceiros />} />
