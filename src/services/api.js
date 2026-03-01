@@ -203,6 +203,14 @@ export const api = {
   createPedido: (payload) => request('/api/pedidos/', { method: 'POST', body: payload }),
   getPedido: (uuid) => request(`/api/pedidos/uuid/${encodeURIComponent(uuid)}`),
   updatePedidoStatus: (uuid, status) => request(`/api/pedidos/uuid/${encodeURIComponent(uuid)}/status`, { method: 'PUT', body: { status } }),
+
+  // Restaurante: Turnos (escala)
+  getTurnos: () => request('/api/turnos/'),
+  getTurnoAtivo: () => request('/api/turnos/ativo'),
+  createTurno: (payload) => request('/api/turnos/', { method: 'POST', body: payload }),
+  updateTurno: (id, payload) => request(`/api/turnos/${encodeURIComponent(id)}`, { method: 'PUT', body: payload }),
+  ativarTurno: (id) => request(`/api/turnos/${encodeURIComponent(id)}/ativar`, { method: 'POST' }),
+  updateTurnoMembros: (id, membros) => request(`/api/turnos/${encodeURIComponent(id)}/membros`, { method: 'PUT', body: { membros } }),
   // Mesas
   getMesas: () => request('/api/mesas/'),
   // Dívidas
