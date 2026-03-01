@@ -35,6 +35,30 @@ export default function PdvRestaurante() {
   const [toast, setToast] = useState(null)
 
   useEffect(() => {
+    if (!isRestaurante) return
+
+    let mounted = true
+    async function tick() {
+      try {
+        await api.getTurnoAtivo()
+      } catch {
+        // noop
+      }
+    }
+
+    tick()
+    const id = setInterval(() => {
+      if (!mounted) return
+      tick()
+    }, 60_000)
+
+    return () => {
+      mounted = false
+      clearInterval(id)
+    }
+  }, [isRestaurante])
+
+  useEffect(() => {
     if (!toast) return
     const id = setTimeout(() => setToast(null), 2500)
     return () => clearTimeout(id)

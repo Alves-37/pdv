@@ -13,7 +13,7 @@ export default function Turnos() {
 
   const [createOpen, setCreateOpen] = useState(false)
   const [createNome, setCreateNome] = useState('')
-  const [createDias, setCreateDias] = useState([1, 2, 3, 4, 5])
+  const [createDias, setCreateDias] = useState([0, 1, 2, 3, 4])
   const [createHoraInicio, setCreateHoraInicio] = useState('08:00')
   const [createHoraFim, setCreateHoraFim] = useState('16:00')
   const [createSubmitting, setCreateSubmitting] = useState(false)
@@ -21,7 +21,7 @@ export default function Turnos() {
   const [editOpen, setEditOpen] = useState(false)
   const [editId, setEditId] = useState('')
   const [editNome, setEditNome] = useState('')
-  const [editDias, setEditDias] = useState([1, 2, 3, 4, 5])
+  const [editDias, setEditDias] = useState([0, 1, 2, 3, 4])
   const [editHoraInicio, setEditHoraInicio] = useState('')
   const [editHoraFim, setEditHoraFim] = useState('')
   const [editSubmitting, setEditSubmitting] = useState(false)
@@ -80,7 +80,7 @@ export default function Turnos() {
       })
       setCreateOpen(false)
       setCreateNome('')
-      setCreateDias([1, 2, 3, 4, 5])
+      setCreateDias([0, 1, 2, 3, 4])
       setCreateHoraInicio('08:00')
       setCreateHoraFim('16:00')
       await load()
@@ -102,7 +102,7 @@ export default function Turnos() {
   function openEdit(t) {
     setEditId(String(t?.id || ''))
     setEditNome(String(t?.nome || ''))
-    setEditDias(Array.isArray(t?.dias_semana) ? t.dias_semana : [1, 2, 3, 4, 5])
+    setEditDias(Array.isArray(t?.dias_semana) ? t.dias_semana : [0, 1, 2, 3, 4])
     setEditHoraInicio(String(t?.hora_inicio || '08:00'))
     setEditHoraFim(String(t?.hora_fim || '16:00'))
     setEditOpen(true)
@@ -221,7 +221,7 @@ export default function Turnos() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-2xl font-bold">Turnos</h1>
-        <button className="btn-primary" onClick={() => setCreateOpen(true)}>Novo turno</button>
+        <button className="btn-primary" onClick={() => setCreateOpen(true)} disabled={(todos || []).length >= 2}>Novo turno</button>
       </div>
 
       {error && <p className="text-red-600">{error}</p>}
@@ -235,9 +235,42 @@ export default function Turnos() {
       )}
 
       {!loading && (todos || []).length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {(todos || []).map(t => (
-            <div key={t.id} className="card p-3">
+        <div className="space-y-3">
+          {(todos || []).length > 2 && (
+            <div className="card p-3">
+              <div className="text-sm text-gray-700">Você tem mais de 2 turnos cadastrados. Para usar o modo de 2 turnos, apague os extras.</div>
+            </div>
+          )}
+
+          <div className="card p-3">
+            <div className="text-sm font-semibold">Turno ativo</div>
+            <div className="mt-2">
+              <select
+                className="input w-full"
+                value={String((todos || []).find(t => t.ativo)?.id || '')}
+                onChange={async (e) => {
+                  const id = e.target.value
+                  if (!id) return
+                  try {
+                    await api.ativarTurno(id)
+                    await load()
+                  } catch (err) {
+                    setError(err.message)
+                  }
+                }}
+              >
+                <option value="" disabled>Selecione...</option>
+                {(todos || []).map(t => (
+                  <option key={t.id} value={t.id}>{t.nome}</option>
+                ))}
+              </select>
+            </div>
+            <div className="mt-2 text-xs text-gray-500">A troca automática acontece quando alguém consulta o turno ativo.</div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {(todos || []).map(t => (
+              <div key={t.id} className="card p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="font-semibold truncate">{t.nome}</div>
@@ -267,14 +300,12 @@ export default function Turnos() {
 
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <button className="btn-outline" onClick={() => openMembros(t)}>Equipe</button>
-                <button className="btn-primary" onClick={() => ativar(t)} disabled={t.ativo}>Ativar</button>
-              </div>
-              <div className="mt-2 grid grid-cols-2 gap-2">
                 <button className="btn-outline" onClick={() => openEdit(t)}>Editar</button>
                 <button className="btn-outline" onClick={() => apagar(t)}>Apagar</button>
               </div>
             </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
