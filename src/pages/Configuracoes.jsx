@@ -90,7 +90,12 @@ export default function Configuracoes() {
       await api.restoreTenantBackup(restoreTarget.id)
       setRestoreOpen(false)
       setRestoreTarget(null)
-      setSuccess('Backup restaurado com sucesso.')
+      try {
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('user')
+      } catch {}
+      setSuccess('Backup restaurado com sucesso. Reiniciando sessão...')
+      window.location.assign('/login')
     } catch (e) {
       setError(e.message)
     } finally {

@@ -29,16 +29,23 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-40 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900 shadow">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-14 items-center justify-between">
+        <div className="flex min-h-14 py-2 items-center justify-between gap-3">
           {/* Brand */}
           <div className="flex items-center min-w-0">
-            <Link to={isAdmin ? '/dashboard' : '/pdv'} className={`text-lg font-bold text-white whitespace-nowrap rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-700`}>
-              Bem vindo(a)
+            <Link
+              to={isAdmin ? '/dashboard' : '/pdv'}
+              className="min-w-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-700"
+              title={user?.nome || user?.usuario || ''}
+            >
+              <div className="flex flex-col leading-tight">
+                <span className="text-sm sm:text-lg font-bold text-white whitespace-nowrap">
+                  Bem vindo(a)
+                </span>
+                <span className="text-[11px] sm:text-sm text-white/90 font-semibold truncate max-w-[220px] sm:max-w-[320px]">
+                  {user?.nome || user?.usuario || ''}
+                </span>
+              </div>
             </Link>
-            {/* Nome do usuário ao lado da marca */}
-            <span className="ml-2 text-sm text-white/80 truncate max-w-[140px] font-bold">
-              {user?.nome || user?.usuario || ''}
-            </span>
           </div>
 
           {/* Desktop nav */}
