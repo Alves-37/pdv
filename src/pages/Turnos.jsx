@@ -67,6 +67,12 @@ export default function Turnos() {
     }))
   }, [usuarios])
 
+  const turnoNomeOptions = useMemo(() => {
+    const base = ['Turno 1', 'Turno 2']
+    const existentes = new Set((todos || []).map(t => String(t?.nome || '').trim()).filter(Boolean))
+    return base.map(nome => ({ nome, disabled: existentes.has(nome) }))
+  }, [todos])
+
   async function submitCreate() {
     const nome = String(createNome || '').trim()
     if (!nome) return
@@ -322,8 +328,13 @@ export default function Turnos() {
         )}
       >
         <div className="space-y-3">
-          <label className="text-sm text-gray-600">Nome</label>
-          <input className="input w-full" value={createNome} onChange={e => setCreateNome(e.target.value)} placeholder="Ex: Turno Manhã" />
+          <label className="text-sm text-gray-600">Turno</label>
+          <select className="input w-full" value={createNome} onChange={e => setCreateNome(e.target.value)}>
+            <option value="">Selecione...</option>
+            {turnoNomeOptions.map(opt => (
+              <option key={opt.nome} value={opt.nome} disabled={opt.disabled}>{opt.nome}</option>
+            ))}
+          </select>
 
           <div>
             <label className="text-sm text-gray-600">Dias da semana</label>
