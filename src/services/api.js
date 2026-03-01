@@ -15,6 +15,20 @@ try {
   }
 } catch {}
 
+function handleAuthExpired(status) {
+  if (status !== 401 && status !== 403) return
+  try {
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('user')
+  } catch {}
+  try {
+    const current = window.location?.pathname || ''
+    if (current !== '/login') {
+      window.location.assign('/login')
+    }
+  } catch {}
+}
+
 async function request(path, { method = 'GET', body, headers = {}, auth = true } = {}) {
   const token = auth ? localStorage.getItem('access_token') : null;
   const tenantId = localStorage.getItem('tenant_id');
@@ -38,6 +52,7 @@ async function request(path, { method = 'GET', body, headers = {}, auth = true }
   });
 
   if (!res.ok) {
+    handleAuthExpired(res.status)
     let message = `HTTP ${res.status}`;
     try {
       const data = await res.json();
@@ -89,6 +104,7 @@ async function uploadFile(path, file, { auth = true } = {}) {
   })
 
   if (!res.ok) {
+    handleAuthExpired(res.status)
     let message = `HTTP ${res.status}`;
     try {
       const data = await res.json();

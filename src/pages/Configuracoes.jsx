@@ -141,9 +141,14 @@ export default function Configuracoes() {
     setSuccess(null)
     try {
       await api.resetDadosOnline()
-      setSuccess('Dados de vendas online foram resetados.')
+      try {
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('user')
+      } catch {}
+      setSuccess('Dados online foram resetados. Reiniciando sessão...')
       setResetOpen(false)
       setResetText('')
+      window.location.assign('/login')
     } catch (e) {
       setError(e.message)
     } finally {
